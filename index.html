@@ -11,8 +11,334 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Firebase Compat SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js">
+    // --- Category Management Functions ---
+    function handleCategorySubmit(e) {
+      e.preventDefault();
+      const editingKey = document.getElementById('editingCategoryKey').value;
+      const name = document.getElementById('newCategoryInput').value.trim();
+      const imageUrl = document.getElementById('newCategoryImgUrl').value || '';
+      if(!name) return;
+
+      const payload = { name: name, imageUrl: imageUrl };
+
+      if(editingKey) {
+        db.ref('categories/' + editingKey).set(payload).then(() => {
+          alert("تم تعديل القسم بنجاح!");
+          resetCategoryForm();
+        });
+      } else {
+        db.ref('categories').push(payload).then(() => {
+          alert("تم إضافة القسم وصورته بنجاح!");
+          resetCategoryForm();
+        });
+      }
+    }
+
+    function resetCategoryForm() {
+      document.getElementById('categoryForm').reset();
+      document.getElementById('editingCategoryKey').value = '';
+      document.getElementById('newCategoryImgUrl').value = '';
+      document.getElementById('categorySubmitBtn').innerHTML = '<i class="fa-solid fa-plus me-1"></i>حفظ القسم';
+      document.getElementById('cancelCategoryEditBtn').classList.add('d-none');
+    }
+
+    function editCategory(key) {
+      const cat = rawCategoriesData[key];
+      if(!cat) return;
+      const name = (typeof cat === 'object') ? cat.name : cat;
+      const img = (typeof cat === 'object') ? (cat.imageUrl || '') : '';
+
+      document.getElementById('editingCategoryKey').value = key;
+      document.getElementById('newCategoryInput').value = name;
+      document.getElementById('newCategoryImgUrl').value = img;
+      document.getElementById('categorySubmitBtn').innerHTML = '<i class="fa-solid fa-check me-1"></i>تحديث القسم';
+      document.getElementById('cancelCategoryEditBtn').classList.remove('d-none');
+      document.getElementById('newCategoryInput').focus();
+    }
+
+    function deleteCategory(key) {
+      if(confirm("هل أنت متأكد من حذف هذا القسم؟")) {
+        db.ref('categories/' + key).remove().then(() => alert("تم الحذف بنجاح!"));
+      }
+    }
+
+    // --- Listen & Render Categories with Images ---
+    function listenToCategories() {
+      db.ref('categories').on('value', (snapshot) => {
+        rawCategoriesData = snapshot.val() || {};
+        let catList = [];
+        let adminCatHtml = [];
+        
+        if (snapshot.exists()) {
+          Object.keys(rawCategoriesData).forEach(k => {
+            const item = rawCategoriesData[k];
+            const name = (typeof item === 'object') ? item.name : item;
+            const img = (typeof item === 'object') ? item.imageUrl : '';
+            catList.push(name);
+            
+            adminCatHtml.push(`
+              <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                  ${img ? `<img src="${img}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;" class="border">` : '<i class="fa-solid fa-folder fs-4 text-warning"></i>'}
+                  <div>
+                    <span class="fw-bold small">${name}</span>
+                  </div>
+                </div>
+                <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editCategory('${k}')" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteCategory('${k}')" title="حذف"><i class="fa-solid fa-trash"></i></button>
+                </div>
+              </div>
+            `);
+          });
+        } else {
+          catList = ["أخبار عاجلة", "تقارير الأزمة", "مقالات تحليلية", "تغطية ميدانية"];
+        }
+
+        siteCategories = ["الكل", ...catList];
+        renderCategoryButtons();
+        updateCategoryDropdowns();
+        
+        const adminCatListEl = document.getElementById('adminCategoriesList');
+        if(adminCatListEl) {
+          adminCatListEl.innerHTML = adminCatHtml.length ? adminCatHtml.join('') : '<div class="text-muted small">لا توجد أقسام.</div>';
+        }
+      });
+    }
+
+    // --- News Management Functions (Edit & Delete) ---
+    function renderAdminManageNewsList() {
+      const container = document.getElementById('adminManageNewsList');
+      if(!container) return;
+      const keys = Object.keys(allNewsData).reverse();
+      if(keys.length === 0) {
+        container.innerHTML = '<div class="text-muted small">لا توجد أخبار منشورة حالياً.</div>';
+        return;
+      }
+      container.innerHTML = keys.map(k => {
+        const item = allNewsData[k];
+        return `
+          <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+            <div>
+              <span class="badge bg-secondary mb-1" style="font-size:0.65rem;">${item.category || 'عاجل'}</span>
+              <div class="fw-bold small text-dark">${item.title}</div>
+              <div class="text-muted" style="font-size:0.7rem;">الناشر: ${item.author || '---'} | التاريخ: ${new Date(item.createdAt || Date.now()).toLocaleDateString('ar-EG')}</div>
+            </div>
+            <div class="d-flex gap-1">
+              <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editNews('${k}')" title="تعديل الخبر"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteNews('${k}')" title="حذف الخبر"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function editNews(key) {
+      const item = allNewsData[key];
+      if(!item) return;
+
+      document.getElementById('editingNewsKey').value = key;
+      document.getElementById('newsTitle').value = item.title || '';
+      document.getElementById('newsTitleColor').value = item.titleColor || '#d32f2f';
+      document.getElementById('newsCategory').value = item.category || '';
+      document.getElementById('newsAuthor').value = item.author || '';
+      document.getElementById('newsSummary').value = item.summary || '';
+      document.getElementById('newsBodyEditor').innerHTML = item.body || '';
+      document.getElementById('newsPdfUrl').value = item.pdfUrl || '';
+      document.getElementById('newsImageUrl').value = item.imageUrl || '';
+      document.getElementById('newsVideoUrl').value = item.videoUrl || '';
+      document.getElementById('newsAudioUrl').value = item.audioUrl || '';
+
+      document.getElementById('newsSubmitBtn').innerText = "تحديث الخبر";
+      document.getElementById('cancelEditBtn').classList.remove('d-none');
+
+      // Switch to publish tab to show form
+      switchAdminTab('publish');
+    }
+
+    function resetNewsForm() {
+      document.getElementById('newsForm').reset();
+      document.getElementById('editingNewsKey').value = '';
+      document.getElementById('newsBodyEditor').innerHTML = '';
+      document.getElementById('newsSubmitBtn').innerText = "نشر المحتوى";
+      document.getElementById('cancelEditBtn').classList.add('d-none');
+    }
+
+    function deleteNews(key) {
+      if(confirm("هل أنت متأكد من حذف هذا الخبر نهائياً؟")) {
+        db.ref('news/' + key).remove().then(() => {
+          alert("تم حذف الخبر بنجاح!");
+          renderAdminManageNewsList();
+        });
+      }
+    }
+
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js">
+    // --- Category Management Functions ---
+    function handleCategorySubmit(e) {
+      e.preventDefault();
+      const editingKey = document.getElementById('editingCategoryKey').value;
+      const name = document.getElementById('newCategoryInput').value.trim();
+      const imageUrl = document.getElementById('newCategoryImgUrl').value || '';
+      if(!name) return;
+
+      const payload = { name: name, imageUrl: imageUrl };
+
+      if(editingKey) {
+        db.ref('categories/' + editingKey).set(payload).then(() => {
+          alert("تم تعديل القسم بنجاح!");
+          resetCategoryForm();
+        });
+      } else {
+        db.ref('categories').push(payload).then(() => {
+          alert("تم إضافة القسم وصورته بنجاح!");
+          resetCategoryForm();
+        });
+      }
+    }
+
+    function resetCategoryForm() {
+      document.getElementById('categoryForm').reset();
+      document.getElementById('editingCategoryKey').value = '';
+      document.getElementById('newCategoryImgUrl').value = '';
+      document.getElementById('categorySubmitBtn').innerHTML = '<i class="fa-solid fa-plus me-1"></i>حفظ القسم';
+      document.getElementById('cancelCategoryEditBtn').classList.add('d-none');
+    }
+
+    function editCategory(key) {
+      const cat = rawCategoriesData[key];
+      if(!cat) return;
+      const name = (typeof cat === 'object') ? cat.name : cat;
+      const img = (typeof cat === 'object') ? (cat.imageUrl || '') : '';
+
+      document.getElementById('editingCategoryKey').value = key;
+      document.getElementById('newCategoryInput').value = name;
+      document.getElementById('newCategoryImgUrl').value = img;
+      document.getElementById('categorySubmitBtn').innerHTML = '<i class="fa-solid fa-check me-1"></i>تحديث القسم';
+      document.getElementById('cancelCategoryEditBtn').classList.remove('d-none');
+      document.getElementById('newCategoryInput').focus();
+    }
+
+    function deleteCategory(key) {
+      if(confirm("هل أنت متأكد من حذف هذا القسم؟")) {
+        db.ref('categories/' + key).remove().then(() => alert("تم الحذف بنجاح!"));
+      }
+    }
+
+    // --- Listen & Render Categories with Images ---
+    function listenToCategories() {
+      db.ref('categories').on('value', (snapshot) => {
+        rawCategoriesData = snapshot.val() || {};
+        let catList = [];
+        let adminCatHtml = [];
+        
+        if (snapshot.exists()) {
+          Object.keys(rawCategoriesData).forEach(k => {
+            const item = rawCategoriesData[k];
+            const name = (typeof item === 'object') ? item.name : item;
+            const img = (typeof item === 'object') ? item.imageUrl : '';
+            catList.push(name);
+            
+            adminCatHtml.push(`
+              <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                  ${img ? `<img src="${img}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;" class="border">` : '<i class="fa-solid fa-folder fs-4 text-warning"></i>'}
+                  <div>
+                    <span class="fw-bold small">${name}</span>
+                  </div>
+                </div>
+                <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editCategory('${k}')" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteCategory('${k}')" title="حذف"><i class="fa-solid fa-trash"></i></button>
+                </div>
+              </div>
+            `);
+          });
+        } else {
+          catList = ["أخبار عاجلة", "تقارير الأزمة", "مقالات تحليلية", "تغطية ميدانية"];
+        }
+
+        siteCategories = ["الكل", ...catList];
+        renderCategoryButtons();
+        updateCategoryDropdowns();
+        
+        const adminCatListEl = document.getElementById('adminCategoriesList');
+        if(adminCatListEl) {
+          adminCatListEl.innerHTML = adminCatHtml.length ? adminCatHtml.join('') : '<div class="text-muted small">لا توجد أقسام.</div>';
+        }
+      });
+    }
+
+    // --- News Management Functions (Edit & Delete) ---
+    function renderAdminManageNewsList() {
+      const container = document.getElementById('adminManageNewsList');
+      if(!container) return;
+      const keys = Object.keys(allNewsData).reverse();
+      if(keys.length === 0) {
+        container.innerHTML = '<div class="text-muted small">لا توجد أخبار منشورة حالياً.</div>';
+        return;
+      }
+      container.innerHTML = keys.map(k => {
+        const item = allNewsData[k];
+        return `
+          <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+            <div>
+              <span class="badge bg-secondary mb-1" style="font-size:0.65rem;">${item.category || 'عاجل'}</span>
+              <div class="fw-bold small text-dark">${item.title}</div>
+              <div class="text-muted" style="font-size:0.7rem;">الناشر: ${item.author || '---'} | التاريخ: ${new Date(item.createdAt || Date.now()).toLocaleDateString('ar-EG')}</div>
+            </div>
+            <div class="d-flex gap-1">
+              <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editNews('${k}')" title="تعديل الخبر"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteNews('${k}')" title="حذف الخبر"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function editNews(key) {
+      const item = allNewsData[key];
+      if(!item) return;
+
+      document.getElementById('editingNewsKey').value = key;
+      document.getElementById('newsTitle').value = item.title || '';
+      document.getElementById('newsTitleColor').value = item.titleColor || '#d32f2f';
+      document.getElementById('newsCategory').value = item.category || '';
+      document.getElementById('newsAuthor').value = item.author || '';
+      document.getElementById('newsSummary').value = item.summary || '';
+      document.getElementById('newsBodyEditor').innerHTML = item.body || '';
+      document.getElementById('newsPdfUrl').value = item.pdfUrl || '';
+      document.getElementById('newsImageUrl').value = item.imageUrl || '';
+      document.getElementById('newsVideoUrl').value = item.videoUrl || '';
+      document.getElementById('newsAudioUrl').value = item.audioUrl || '';
+
+      document.getElementById('newsSubmitBtn').innerText = "تحديث الخبر";
+      document.getElementById('cancelEditBtn').classList.remove('d-none');
+
+      // Switch to publish tab to show form
+      switchAdminTab('publish');
+    }
+
+    function resetNewsForm() {
+      document.getElementById('newsForm').reset();
+      document.getElementById('editingNewsKey').value = '';
+      document.getElementById('newsBodyEditor').innerHTML = '';
+      document.getElementById('newsSubmitBtn').innerText = "نشر المحتوى";
+      document.getElementById('cancelEditBtn').classList.add('d-none');
+    }
+
+    function deleteNews(key) {
+      if(confirm("هل أنت متأكد من حذف هذا الخبر نهائياً؟")) {
+        db.ref('news/' + key).remove().then(() => {
+          alert("تم حذف الخبر بنجاح!");
+          renderAdminManageNewsList();
+        });
+      }
+    }
+
+  </script>
 
   <style>
     :root {
@@ -306,6 +632,169 @@
       firebase.initializeApp(firebaseConfig);
     }
     const db = firebase.database();
+  
+    // --- Category Management Functions ---
+    function handleCategorySubmit(e) {
+      e.preventDefault();
+      const editingKey = document.getElementById('editingCategoryKey').value;
+      const name = document.getElementById('newCategoryInput').value.trim();
+      const imageUrl = document.getElementById('newCategoryImgUrl').value || '';
+      if(!name) return;
+
+      const payload = { name: name, imageUrl: imageUrl };
+
+      if(editingKey) {
+        db.ref('categories/' + editingKey).set(payload).then(() => {
+          alert("تم تعديل القسم بنجاح!");
+          resetCategoryForm();
+        });
+      } else {
+        db.ref('categories').push(payload).then(() => {
+          alert("تم إضافة القسم وصورته بنجاح!");
+          resetCategoryForm();
+        });
+      }
+    }
+
+    function resetCategoryForm() {
+      document.getElementById('categoryForm').reset();
+      document.getElementById('editingCategoryKey').value = '';
+      document.getElementById('newCategoryImgUrl').value = '';
+      document.getElementById('categorySubmitBtn').innerHTML = '<i class="fa-solid fa-plus me-1"></i>حفظ القسم';
+      document.getElementById('cancelCategoryEditBtn').classList.add('d-none');
+    }
+
+    function editCategory(key) {
+      const cat = rawCategoriesData[key];
+      if(!cat) return;
+      const name = (typeof cat === 'object') ? cat.name : cat;
+      const img = (typeof cat === 'object') ? (cat.imageUrl || '') : '';
+
+      document.getElementById('editingCategoryKey').value = key;
+      document.getElementById('newCategoryInput').value = name;
+      document.getElementById('newCategoryImgUrl').value = img;
+      document.getElementById('categorySubmitBtn').innerHTML = '<i class="fa-solid fa-check me-1"></i>تحديث القسم';
+      document.getElementById('cancelCategoryEditBtn').classList.remove('d-none');
+      document.getElementById('newCategoryInput').focus();
+    }
+
+    function deleteCategory(key) {
+      if(confirm("هل أنت متأكد من حذف هذا القسم؟")) {
+        db.ref('categories/' + key).remove().then(() => alert("تم الحذف بنجاح!"));
+      }
+    }
+
+    // --- Listen & Render Categories with Images ---
+    function listenToCategories() {
+      db.ref('categories').on('value', (snapshot) => {
+        rawCategoriesData = snapshot.val() || {};
+        let catList = [];
+        let adminCatHtml = [];
+        
+        if (snapshot.exists()) {
+          Object.keys(rawCategoriesData).forEach(k => {
+            const item = rawCategoriesData[k];
+            const name = (typeof item === 'object') ? item.name : item;
+            const img = (typeof item === 'object') ? item.imageUrl : '';
+            catList.push(name);
+            
+            adminCatHtml.push(`
+              <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                  ${img ? `<img src="${img}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;" class="border">` : '<i class="fa-solid fa-folder fs-4 text-warning"></i>'}
+                  <div>
+                    <span class="fw-bold small">${name}</span>
+                  </div>
+                </div>
+                <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editCategory('${k}')" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteCategory('${k}')" title="حذف"><i class="fa-solid fa-trash"></i></button>
+                </div>
+              </div>
+            `);
+          });
+        } else {
+          catList = ["أخبار عاجلة", "تقارير الأزمة", "مقالات تحليلية", "تغطية ميدانية"];
+        }
+
+        siteCategories = ["الكل", ...catList];
+        renderCategoryButtons();
+        updateCategoryDropdowns();
+        
+        const adminCatListEl = document.getElementById('adminCategoriesList');
+        if(adminCatListEl) {
+          adminCatListEl.innerHTML = adminCatHtml.length ? adminCatHtml.join('') : '<div class="text-muted small">لا توجد أقسام.</div>';
+        }
+      });
+    }
+
+    // --- News Management Functions (Edit & Delete) ---
+    function renderAdminManageNewsList() {
+      const container = document.getElementById('adminManageNewsList');
+      if(!container) return;
+      const keys = Object.keys(allNewsData).reverse();
+      if(keys.length === 0) {
+        container.innerHTML = '<div class="text-muted small">لا توجد أخبار منشورة حالياً.</div>';
+        return;
+      }
+      container.innerHTML = keys.map(k => {
+        const item = allNewsData[k];
+        return `
+          <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+            <div>
+              <span class="badge bg-secondary mb-1" style="font-size:0.65rem;">${item.category || 'عاجل'}</span>
+              <div class="fw-bold small text-dark">${item.title}</div>
+              <div class="text-muted" style="font-size:0.7rem;">الناشر: ${item.author || '---'} | التاريخ: ${new Date(item.createdAt || Date.now()).toLocaleDateString('ar-EG')}</div>
+            </div>
+            <div class="d-flex gap-1">
+              <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editNews('${k}')" title="تعديل الخبر"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteNews('${k}')" title="حذف الخبر"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function editNews(key) {
+      const item = allNewsData[key];
+      if(!item) return;
+
+      document.getElementById('editingNewsKey').value = key;
+      document.getElementById('newsTitle').value = item.title || '';
+      document.getElementById('newsTitleColor').value = item.titleColor || '#d32f2f';
+      document.getElementById('newsCategory').value = item.category || '';
+      document.getElementById('newsAuthor').value = item.author || '';
+      document.getElementById('newsSummary').value = item.summary || '';
+      document.getElementById('newsBodyEditor').innerHTML = item.body || '';
+      document.getElementById('newsPdfUrl').value = item.pdfUrl || '';
+      document.getElementById('newsImageUrl').value = item.imageUrl || '';
+      document.getElementById('newsVideoUrl').value = item.videoUrl || '';
+      document.getElementById('newsAudioUrl').value = item.audioUrl || '';
+
+      document.getElementById('newsSubmitBtn').innerText = "تحديث الخبر";
+      document.getElementById('cancelEditBtn').classList.remove('d-none');
+
+      // Switch to publish tab to show form
+      switchAdminTab('publish');
+    }
+
+    function resetNewsForm() {
+      document.getElementById('newsForm').reset();
+      document.getElementById('editingNewsKey').value = '';
+      document.getElementById('newsBodyEditor').innerHTML = '';
+      document.getElementById('newsSubmitBtn').innerText = "نشر المحتوى";
+      document.getElementById('cancelEditBtn').classList.add('d-none');
+    }
+
+    function deleteNews(key) {
+      if(confirm("هل أنت متأكد من حذف هذا الخبر نهائياً؟")) {
+        db.ref('news/' + key).remove().then(() => {
+          alert("تم حذف الخبر بنجاح!");
+          renderAdminManageNewsList();
+        });
+      }
+    }
+
   </script>
 
   <!-- Top Bar -->
@@ -385,6 +874,7 @@
 
       <ul class="nav nav-tabs mb-3 flex-nowrap overflow-auto small">
         <li class="nav-item"><button class="nav-link active fw-bold" onclick="switchAdminTab('publish')">نشر خبر / تكليف</button></li>
+        <li class="nav-item"><button class="nav-link fw-bold text-danger" onclick="switchAdminTab('manageNews')"><i class="fa-solid fa-pen-to-square me-1"></i>إدارة الأخبار</button></li>
         <li class="nav-item"><button class="nav-link fw-bold text-primary" onclick="switchAdminTab('categories')"><i class="fa-solid fa-folder-plus me-1"></i>إدارة الأقسام</button></li>
         <li class="nav-item"><button class="nav-link fw-bold text-warning" onclick="switchAdminTab('pending')">مراجعة تكاليف الطلاب</button></li>
         <li class="nav-item"><button class="nav-link fw-bold text-info" onclick="switchAdminTab('comments')">إدارة التعليقات</button></li>
@@ -393,6 +883,14 @@
         <li class="nav-item"><button class="nav-link fw-bold text-secondary" onclick="switchAdminTab('about')"><i class="fa-solid fa-circle-info me-1"></i>إدارة "لمحة"</button></li>
         <li class="nav-item"><button class="nav-link fw-bold text-danger" onclick="switchAdminTab('account')">بيانات الدخول</button></li>
       </ul>
+
+      <!-- Manage News Tab -->
+      <div id="adminTabManageNews" class="d-none">
+        <h6 class="fw-bold small text-danger mb-3"><i class="fa-solid fa-pen-to-square me-1"></i>إدارة وحذف وتعديل الأخبار المنشورة:</h6>
+        <div id="adminManageNewsList" class="p-2 bg-white rounded border shadow-sm">
+          <div class="text-center py-2 text-muted small"><i class="fa-solid fa-spinner fa-spin me-1"></i> جاري التحميل...</div>
+        </div>
+      </div>
 
       <!-- Publish Tab -->
       <div id="adminTabPublish">
@@ -484,14 +982,24 @@
 
       <!-- Categories Management Tab -->
       <div id="adminTabCategories" class="d-none">
-        <h6 class="fw-bold small text-primary mb-3"><i class="fa-solid fa-folder-plus me-1"></i>إدارة أقسام الأزمات:</h6>
+        <h6 class="fw-bold small text-primary mb-3"><i class="fa-solid fa-folder-plus me-1"></i>إدارة أقسام الأزمات (إضافة، تعديل، حذف، وصورة للقسم):</h6>
         
-        <form onsubmit="handleAddCategory(event)" class="row g-2 mb-3 bg-light p-2 rounded border">
-          <div class="col-md-8 col-7">
+        <form id="categoryForm" onsubmit="handleCategorySubmit(event)" class="row g-2 mb-3 bg-light p-3 rounded border">
+          <input type="hidden" id="editingCategoryKey" value="">
+          <div class="col-md-5">
+            <label class="form-label small fw-bold">اسم القسم:</label>
             <input type="text" id="newCategoryInput" class="form-control form-control-sm" placeholder="اسم القسم الجديد..." required>
           </div>
-          <div class="col-md-4 col-5">
-            <button type="submit" class="btn btn-sm btn-success fw-bold w-100"><i class="fa-solid fa-plus me-1"></i>إضافة قسم</button>
+          <div class="col-md-5">
+            <label class="form-label small fw-bold"><i class="fa-solid fa-image me-1"></i>صورة القسم (من الهاتف):</label>
+            <input type="file" id="categoryImageFile" class="form-control form-control-sm" accept="image/*" onchange="convertFileToBase64(this, 'newCategoryImgUrl')">
+            <input type="hidden" id="newCategoryImgUrl">
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-sm btn-success fw-bold w-100" id="categorySubmitBtn"><i class="fa-solid fa-plus me-1"></i>حفظ القسم</button>
+          </div>
+          <div class="col-12 mt-1">
+            <button type="button" id="cancelCategoryEditBtn" class="btn btn-sm btn-secondary fw-bold d-none w-100" onclick="resetCategoryForm()">إلغاء التعديل</button>
           </div>
         </form>
 
@@ -849,7 +1357,170 @@
     <a href="#aboutSection" class="nav-item-btn" onclick="scrollToAboutSection(); return false;"><i class="fa-solid fa-circle-info"></i>المنصة</a>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
+    // --- Category Management Functions ---
+    function handleCategorySubmit(e) {
+      e.preventDefault();
+      const editingKey = document.getElementById('editingCategoryKey').value;
+      const name = document.getElementById('newCategoryInput').value.trim();
+      const imageUrl = document.getElementById('newCategoryImgUrl').value || '';
+      if(!name) return;
+
+      const payload = { name: name, imageUrl: imageUrl };
+
+      if(editingKey) {
+        db.ref('categories/' + editingKey).set(payload).then(() => {
+          alert("تم تعديل القسم بنجاح!");
+          resetCategoryForm();
+        });
+      } else {
+        db.ref('categories').push(payload).then(() => {
+          alert("تم إضافة القسم وصورته بنجاح!");
+          resetCategoryForm();
+        });
+      }
+    }
+
+    function resetCategoryForm() {
+      document.getElementById('categoryForm').reset();
+      document.getElementById('editingCategoryKey').value = '';
+      document.getElementById('newCategoryImgUrl').value = '';
+      document.getElementById('categorySubmitBtn').innerHTML = '<i class="fa-solid fa-plus me-1"></i>حفظ القسم';
+      document.getElementById('cancelCategoryEditBtn').classList.add('d-none');
+    }
+
+    function editCategory(key) {
+      const cat = rawCategoriesData[key];
+      if(!cat) return;
+      const name = (typeof cat === 'object') ? cat.name : cat;
+      const img = (typeof cat === 'object') ? (cat.imageUrl || '') : '';
+
+      document.getElementById('editingCategoryKey').value = key;
+      document.getElementById('newCategoryInput').value = name;
+      document.getElementById('newCategoryImgUrl').value = img;
+      document.getElementById('categorySubmitBtn').innerHTML = '<i class="fa-solid fa-check me-1"></i>تحديث القسم';
+      document.getElementById('cancelCategoryEditBtn').classList.remove('d-none');
+      document.getElementById('newCategoryInput').focus();
+    }
+
+    function deleteCategory(key) {
+      if(confirm("هل أنت متأكد من حذف هذا القسم؟")) {
+        db.ref('categories/' + key).remove().then(() => alert("تم الحذف بنجاح!"));
+      }
+    }
+
+    // --- Listen & Render Categories with Images ---
+    function listenToCategories() {
+      db.ref('categories').on('value', (snapshot) => {
+        rawCategoriesData = snapshot.val() || {};
+        let catList = [];
+        let adminCatHtml = [];
+        
+        if (snapshot.exists()) {
+          Object.keys(rawCategoriesData).forEach(k => {
+            const item = rawCategoriesData[k];
+            const name = (typeof item === 'object') ? item.name : item;
+            const img = (typeof item === 'object') ? item.imageUrl : '';
+            catList.push(name);
+            
+            adminCatHtml.push(`
+              <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                  ${img ? `<img src="${img}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;" class="border">` : '<i class="fa-solid fa-folder fs-4 text-warning"></i>'}
+                  <div>
+                    <span class="fw-bold small">${name}</span>
+                  </div>
+                </div>
+                <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editCategory('${k}')" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteCategory('${k}')" title="حذف"><i class="fa-solid fa-trash"></i></button>
+                </div>
+              </div>
+            `);
+          });
+        } else {
+          catList = ["أخبار عاجلة", "تقارير الأزمة", "مقالات تحليلية", "تغطية ميدانية"];
+        }
+
+        siteCategories = ["الكل", ...catList];
+        renderCategoryButtons();
+        updateCategoryDropdowns();
+        
+        const adminCatListEl = document.getElementById('adminCategoriesList');
+        if(adminCatListEl) {
+          adminCatListEl.innerHTML = adminCatHtml.length ? adminCatHtml.join('') : '<div class="text-muted small">لا توجد أقسام.</div>';
+        }
+      });
+    }
+
+    // --- News Management Functions (Edit & Delete) ---
+    function renderAdminManageNewsList() {
+      const container = document.getElementById('adminManageNewsList');
+      if(!container) return;
+      const keys = Object.keys(allNewsData).reverse();
+      if(keys.length === 0) {
+        container.innerHTML = '<div class="text-muted small">لا توجد أخبار منشورة حالياً.</div>';
+        return;
+      }
+      container.innerHTML = keys.map(k => {
+        const item = allNewsData[k];
+        return `
+          <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+            <div>
+              <span class="badge bg-secondary mb-1" style="font-size:0.65rem;">${item.category || 'عاجل'}</span>
+              <div class="fw-bold small text-dark">${item.title}</div>
+              <div class="text-muted" style="font-size:0.7rem;">الناشر: ${item.author || '---'} | التاريخ: ${new Date(item.createdAt || Date.now()).toLocaleDateString('ar-EG')}</div>
+            </div>
+            <div class="d-flex gap-1">
+              <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editNews('${k}')" title="تعديل الخبر"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteNews('${k}')" title="حذف الخبر"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function editNews(key) {
+      const item = allNewsData[key];
+      if(!item) return;
+
+      document.getElementById('editingNewsKey').value = key;
+      document.getElementById('newsTitle').value = item.title || '';
+      document.getElementById('newsTitleColor').value = item.titleColor || '#d32f2f';
+      document.getElementById('newsCategory').value = item.category || '';
+      document.getElementById('newsAuthor').value = item.author || '';
+      document.getElementById('newsSummary').value = item.summary || '';
+      document.getElementById('newsBodyEditor').innerHTML = item.body || '';
+      document.getElementById('newsPdfUrl').value = item.pdfUrl || '';
+      document.getElementById('newsImageUrl').value = item.imageUrl || '';
+      document.getElementById('newsVideoUrl').value = item.videoUrl || '';
+      document.getElementById('newsAudioUrl').value = item.audioUrl || '';
+
+      document.getElementById('newsSubmitBtn').innerText = "تحديث الخبر";
+      document.getElementById('cancelEditBtn').classList.remove('d-none');
+
+      // Switch to publish tab to show form
+      switchAdminTab('publish');
+    }
+
+    function resetNewsForm() {
+      document.getElementById('newsForm').reset();
+      document.getElementById('editingNewsKey').value = '';
+      document.getElementById('newsBodyEditor').innerHTML = '';
+      document.getElementById('newsSubmitBtn').innerText = "نشر المحتوى";
+      document.getElementById('cancelEditBtn').classList.add('d-none');
+    }
+
+    function deleteNews(key) {
+      if(confirm("هل أنت متأكد من حذف هذا الخبر نهائياً؟")) {
+        db.ref('news/' + key).remove().then(() => {
+          alert("تم حذف الخبر بنجاح!");
+          renderAdminManageNewsList();
+        });
+      }
+    }
+
+  </script>
 
   <script>
     let allNewsData = {};
@@ -1123,6 +1794,7 @@
     // Submit logic
     function handleNewsSubmit(e) {
       e.preventDefault();
+      const editingKey = document.getElementById('editingNewsKey').value;
       const newsPayload = {
         title: document.getElementById('newsTitle').value.trim(),
         titleColor: document.getElementById('newsTitleColor').value,
@@ -1130,7 +1802,7 @@
         author: document.getElementById('newsAuthor').value.trim(),
         summary: document.getElementById('newsSummary').value.trim(),
         body: document.getElementById('newsBodyEditor').innerHTML,
-        pdfUrl: document.getElementById('newsPdfUrl').value, // PDF Added
+        pdfUrl: document.getElementById('newsPdfUrl').value,
         imageUrl: document.getElementById('newsImageUrl').value,
         videoUrl: document.getElementById('newsVideoUrl').value,
         audioUrl: document.getElementById('newsAudioUrl').value,
@@ -1138,11 +1810,18 @@
         createdAt: Date.now()
       };
 
-      db.ref('news').push(newsPayload).then(() => {
-        alert("تم نشر المحتوى بنجاح!");
-        document.getElementById('newsForm').reset();
-        document.getElementById('newsBodyEditor').innerHTML = '';
-      });
+      if (editingKey) {
+        db.ref('news/' + editingKey).update(newsPayload).then(() => {
+          alert("تم تحديث الخبر بنجاح!");
+          resetNewsForm();
+        });
+      } else {
+        db.ref('news').push(newsPayload).then(() => {
+          alert("تم نشر المحتوى بنجاح!");
+          document.getElementById('newsForm').reset();
+          document.getElementById('newsBodyEditor').innerHTML = '';
+        });
+      }
     }
 
     function handleReporterSubmit(e) {
@@ -1272,12 +1951,13 @@
     }
 
     function switchAdminTab(tab) {
-      ['Publish', 'Categories', 'Pending', 'Comments', 'Theme', 'Team', 'About', 'Account'].forEach(t => {
+      ['Publish', 'ManageNews', 'Categories', 'Pending', 'Comments', 'Theme', 'Team', 'About', 'Account'].forEach(t => {
         const el = document.getElementById('adminTab' + t);
         if(el) el.classList.add('d-none');
       });
       const target = document.getElementById('adminTab' + tab.charAt(0).toUpperCase() + tab.slice(1));
       if(target) target.classList.remove('d-none');
+      if(tab === 'manageNews') renderAdminManageNewsList();
     }
 
     function listenToTeamMembers() {
@@ -1448,6 +2128,169 @@
         prompt("انسخ رابط المنصة:", window.location.href);
       }
     }
+  
+    // --- Category Management Functions ---
+    function handleCategorySubmit(e) {
+      e.preventDefault();
+      const editingKey = document.getElementById('editingCategoryKey').value;
+      const name = document.getElementById('newCategoryInput').value.trim();
+      const imageUrl = document.getElementById('newCategoryImgUrl').value || '';
+      if(!name) return;
+
+      const payload = { name: name, imageUrl: imageUrl };
+
+      if(editingKey) {
+        db.ref('categories/' + editingKey).set(payload).then(() => {
+          alert("تم تعديل القسم بنجاح!");
+          resetCategoryForm();
+        });
+      } else {
+        db.ref('categories').push(payload).then(() => {
+          alert("تم إضافة القسم وصورته بنجاح!");
+          resetCategoryForm();
+        });
+      }
+    }
+
+    function resetCategoryForm() {
+      document.getElementById('categoryForm').reset();
+      document.getElementById('editingCategoryKey').value = '';
+      document.getElementById('newCategoryImgUrl').value = '';
+      document.getElementById('categorySubmitBtn').innerHTML = '<i class="fa-solid fa-plus me-1"></i>حفظ القسم';
+      document.getElementById('cancelCategoryEditBtn').classList.add('d-none');
+    }
+
+    function editCategory(key) {
+      const cat = rawCategoriesData[key];
+      if(!cat) return;
+      const name = (typeof cat === 'object') ? cat.name : cat;
+      const img = (typeof cat === 'object') ? (cat.imageUrl || '') : '';
+
+      document.getElementById('editingCategoryKey').value = key;
+      document.getElementById('newCategoryInput').value = name;
+      document.getElementById('newCategoryImgUrl').value = img;
+      document.getElementById('categorySubmitBtn').innerHTML = '<i class="fa-solid fa-check me-1"></i>تحديث القسم';
+      document.getElementById('cancelCategoryEditBtn').classList.remove('d-none');
+      document.getElementById('newCategoryInput').focus();
+    }
+
+    function deleteCategory(key) {
+      if(confirm("هل أنت متأكد من حذف هذا القسم؟")) {
+        db.ref('categories/' + key).remove().then(() => alert("تم الحذف بنجاح!"));
+      }
+    }
+
+    // --- Listen & Render Categories with Images ---
+    function listenToCategories() {
+      db.ref('categories').on('value', (snapshot) => {
+        rawCategoriesData = snapshot.val() || {};
+        let catList = [];
+        let adminCatHtml = [];
+        
+        if (snapshot.exists()) {
+          Object.keys(rawCategoriesData).forEach(k => {
+            const item = rawCategoriesData[k];
+            const name = (typeof item === 'object') ? item.name : item;
+            const img = (typeof item === 'object') ? item.imageUrl : '';
+            catList.push(name);
+            
+            adminCatHtml.push(`
+              <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                  ${img ? `<img src="${img}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;" class="border">` : '<i class="fa-solid fa-folder fs-4 text-warning"></i>'}
+                  <div>
+                    <span class="fw-bold small">${name}</span>
+                  </div>
+                </div>
+                <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editCategory('${k}')" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteCategory('${k}')" title="حذف"><i class="fa-solid fa-trash"></i></button>
+                </div>
+              </div>
+            `);
+          });
+        } else {
+          catList = ["أخبار عاجلة", "تقارير الأزمة", "مقالات تحليلية", "تغطية ميدانية"];
+        }
+
+        siteCategories = ["الكل", ...catList];
+        renderCategoryButtons();
+        updateCategoryDropdowns();
+        
+        const adminCatListEl = document.getElementById('adminCategoriesList');
+        if(adminCatListEl) {
+          adminCatListEl.innerHTML = adminCatHtml.length ? adminCatHtml.join('') : '<div class="text-muted small">لا توجد أقسام.</div>';
+        }
+      });
+    }
+
+    // --- News Management Functions (Edit & Delete) ---
+    function renderAdminManageNewsList() {
+      const container = document.getElementById('adminManageNewsList');
+      if(!container) return;
+      const keys = Object.keys(allNewsData).reverse();
+      if(keys.length === 0) {
+        container.innerHTML = '<div class="text-muted small">لا توجد أخبار منشورة حالياً.</div>';
+        return;
+      }
+      container.innerHTML = keys.map(k => {
+        const item = allNewsData[k];
+        return `
+          <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+            <div>
+              <span class="badge bg-secondary mb-1" style="font-size:0.65rem;">${item.category || 'عاجل'}</span>
+              <div class="fw-bold small text-dark">${item.title}</div>
+              <div class="text-muted" style="font-size:0.7rem;">الناشر: ${item.author || '---'} | التاريخ: ${new Date(item.createdAt || Date.now()).toLocaleDateString('ar-EG')}</div>
+            </div>
+            <div class="d-flex gap-1">
+              <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editNews('${k}')" title="تعديل الخبر"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteNews('${k}')" title="حذف الخبر"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function editNews(key) {
+      const item = allNewsData[key];
+      if(!item) return;
+
+      document.getElementById('editingNewsKey').value = key;
+      document.getElementById('newsTitle').value = item.title || '';
+      document.getElementById('newsTitleColor').value = item.titleColor || '#d32f2f';
+      document.getElementById('newsCategory').value = item.category || '';
+      document.getElementById('newsAuthor').value = item.author || '';
+      document.getElementById('newsSummary').value = item.summary || '';
+      document.getElementById('newsBodyEditor').innerHTML = item.body || '';
+      document.getElementById('newsPdfUrl').value = item.pdfUrl || '';
+      document.getElementById('newsImageUrl').value = item.imageUrl || '';
+      document.getElementById('newsVideoUrl').value = item.videoUrl || '';
+      document.getElementById('newsAudioUrl').value = item.audioUrl || '';
+
+      document.getElementById('newsSubmitBtn').innerText = "تحديث الخبر";
+      document.getElementById('cancelEditBtn').classList.remove('d-none');
+
+      // Switch to publish tab to show form
+      switchAdminTab('publish');
+    }
+
+    function resetNewsForm() {
+      document.getElementById('newsForm').reset();
+      document.getElementById('editingNewsKey').value = '';
+      document.getElementById('newsBodyEditor').innerHTML = '';
+      document.getElementById('newsSubmitBtn').innerText = "نشر المحتوى";
+      document.getElementById('cancelEditBtn').classList.add('d-none');
+    }
+
+    function deleteNews(key) {
+      if(confirm("هل أنت متأكد من حذف هذا الخبر نهائياً؟")) {
+        db.ref('news/' + key).remove().then(() => {
+          alert("تم حذف الخبر بنجاح!");
+          renderAdminManageNewsList();
+        });
+      }
+    }
+
   </script>
 </body>
 </html>
