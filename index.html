@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>منصة الصحافة وإدارة الأزمات | جامعة المنيا</title>
+  
+  <!-- Bootstrap 5 RTL & FontAwesome -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Firebase Compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --primary-orange: #b71c1c;
+      --primary-dark: #121624;
+      --card-bg: #ffffff;
+      --text-main: #222222;
+      --bg-light: #f4f6f9;
+      --header-bg: linear-gradient(180deg, var(--primary-dark) 0%, #1a2236 100%);
+      --title-color: #ffffff;
+      --subtitle-color: #f30b07;
+      --ticker-bg: #ffffff;
+      --ticker-text: #222222;
+      --btn-category-bg: #ffffff;
+      --btn-category-text: #555555;
+    }
+
+    body.dark-mode {
+      --card-bg: #1e2538;
+      --text-main: #f0f0f0;
+      --bg-light: #0d111d;
+    }
+
+    body.dark-mode .text-dark,
+    body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, body.dark-mode h4, body.dark-mode h5, body.dark-mode h6,
+    body.dark-mode span, body.dark-mode p, body.dark-mode label, body.dark-mode div {
+      color: #ffffff !important;
+    }
+
+    body.dark-mode .bg-light {
+      background-color: #161c2d !important;
+      color: #ffffff !important;
+    }
+
+    body.dark-mode .form-control, body.dark-mode .form-select {
+      background-color: #161c2d !important;
+      color: #ffffff !important;
+      border-color: #2e3856 !important;
+    }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: var(--bg-light);
+      color: var(--text-main);
+      padding-bottom: 90px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .top-navbar {
+      background-color: var(--primary-orange);
+      color: white;
+      padding: 10px 15px;
+      position: sticky;
+      top: 0;
+      z-index: 1020;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .hero-header {
+      background: var(--header-bg);
+      color: white;
+      padding: 25px 15px;
+      text-align: center;
+      border-bottom: 4px solid var(--primary-orange);
+    }
+
+    .project-title {
+      font-weight: 800;
+      font-size: 1.8rem;
+      margin-bottom: 6px;
+      color: var(--title-color);
+    }
+
+    .project-subtitle {
+      font-size: 0.9rem;
+      color: var(--subtitle-color);
+      font-weight: 600;
+      margin-bottom: 10px;
+      max-width: 750px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.5;
+    }
+
+    .ticker-bar {
+      background-color: var(--ticker-bg);
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      height: 44px;
+    }
+    .ticker-title {
+      background-color: var(--primary-orange);
+      color: white;
+      padding: 0 14px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      font-weight: bold;
+      white-space: nowrap;
+      z-index: 2;
+      font-size: 0.85rem;
+    }
+    .ticker-container { flex: 1; overflow: hidden; white-space: nowrap; position: relative; }
+    .ticker-content {
+      display: inline-block;
+      white-space: nowrap;
+      padding-left: 100%;
+      animation: marquee 25s linear infinite;
+      color: var(--ticker-text);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    @keyframes marquee {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-100%, 0, 0); }
+    }
+
+    .category-btn {
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-weight: 700;
+      border: 1px solid #ddd;
+      background: var(--btn-category-bg);
+      color: var(--btn-category-text);
+      white-space: nowrap;
+      font-size: 0.85rem;
+    }
+    .category-btn.active {
+      background-color: var(--primary-orange);
+      color: white;
+      border-color: var(--primary-orange);
+    }
+
+    .news-card {
+      background-color: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid rgba(0,0,0,0.08);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .card-media-wrapper {
+      position: relative;
+      width: 100%;
+      min-height: 200px;
+      max-height: 380px;
+      background-color: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card-media-wrapper img, .card-media-wrapper video {
+      width: 100%;
+      max-height: 380px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .news-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: var(--primary-orange);
+      color: white;
+      font-size: 0.75rem;
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      z-index: 5;
+    }
+    .card-content { padding: 14px; }
+    .card-news-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .rich-editor {
+      min-height: 120px;
+      max-height: 300px;
+      overflow-y: auto;
+      background: #ffffff;
+      color: #222222;
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background-color: #ffffff;
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0;
+      z-index: 1000;
+    }
+    body.dark-mode .bottom-nav {
+      background-color: #121624 !important;
+    }
+    .nav-item-btn { text-align: center; color: #666; text-decoration: none; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
+    .nav-item-btn.active { color: var(--primary-orange); }
+    .nav-item-btn i { font-size: 1.1rem; display: block; margin-bottom: 2px; }
+    .cursor-pointer { cursor: pointer; }
+
+    .about-footer-section {
+      background: var(--card-bg);
+      border-top: 4px solid var(--primary-orange);
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+      padding: 30px 20px;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5Z2UnbSxw_KJIqPpWx34Vj3qOntYE4Xg",
+      authDomain: "crisis-management-c4160.firebaseapp.com",
+      databaseURL: "https://crisis-management-c4160-default-rtdb.firebaseio.com",
+      projectId: "crisis-management-c4160",
+      storageBucket: "crisis-management-c4160.firebasestorage.app",
+      messagingSenderId: "3361752376",
+      appId: "1:3361752376:web:771834472c7abb2b122dcd",
+      measurementId: "G-K544RQ9BBM"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
+  </script>
+
+  <!-- Top Bar -->
+  <div class="top-navbar d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <i class="fa-solid fa-shield-halved fs-5 text-white"></i>
+      <div class="bg-white px-2 py-1 rounded fw-bold text-dark d-flex align-items-center small">
+        <i class="fa-solid fa-bolt text-danger me-1"></i> إدارة الأزمات
+      </div>
+    </div>
+    <div class="d-flex gap-3 fs-5 align-items-center">
+      <a href="https://wa.me/201551730117" target="_blank" class="text-white text-decoration-none" title="تواصل معنا واتساب"><i class="fa-brands fa-whatsapp"></i></a>
+      <a href="#reporterSection" class="text-white text-decoration-none" title="رفع تكليف" onclick="showReporterSection(); return false;"><i class="fa-solid fa-paper-plane"></i></a>
+      <a href="#pdfLibrarySection" class="text-white text-decoration-none" title="المكتبة" onclick="scrollToPdfLibrary(); return false;"><i class="fa-solid fa-book-bookmark"></i></a>
+      <a href="#podcastSection" class="text-white text-decoration-none" title="البودكاست" onclick="scrollToPodcast(); return false;"><i class="fa-solid fa-podcast"></i></a>
+      <a href="#teamSection" class="text-white text-decoration-none" title="فريق العمل" onclick="scrollToTeamSection(); return false;"><i class="fa-solid fa-users"></i></a>
+      <i class="fa-solid fa-share-nodes cursor-pointer" onclick="shareApp()" title="مشاركة"></i>
+    </div>
+  </div>
+
+  <!-- Hero Header -->
+  <div class="hero-header">
+    <h1 class="project-title" id="displayHeaderTitle">منصة الصحافة وإدارة الأزمات</h1>
+    <div class="project-subtitle" id="displayHeaderSubtitle">
+منصة استقبال و عرض تكاليف مادة الصحافة و ادارة الازمات     </div>
+  </div>
+
+  <!-- News Ticker -->
+  <div class="ticker-bar">
+    <div class="ticker-title"><i class="fa-solid fa-bullhorn me-1"></i> عاجل</div>
+    <div class="ticker-container">
+      <div class="ticker-content" id="displayTickerText">
+        مرحباً بكم في منصة مادة الصحافة وإدارة الأزمات | جامعة المنيا - كلية التربية النوعية
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Controls -->
+  <div class="container my-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="toggleDarkMode()">
+        <i class="fa-solid fa-moon me-1"></i> المظهر
+      </button>
+      <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="openUnifiedLoginModal()">
+        <i class="fa-solid fa-right-to-bracket me-1"></i> تسجيل الدخول
+      </button>
+    </div>
+  </div>
+
+  <!-- Logged in Member Welcome Banner -->
+  <div class="container mb-2 d-none" id="memberLoggedInBanner">
+    <div class="alert alert-success d-flex justify-content-between align-items-center py-2 px-3 m-0 rounded-4 shadow-sm">
+      <div class="d-flex align-items-center gap-2">
+        <i class="fa-solid fa-circle-check fs-5 text-success"></i>
+        <div>
+          <span class="fw-bold small">مرحباً بك: <span id="loggedInMemberName" class="text-primary">---</span> (<span id="loggedInRoleBadge" class="badge bg-primary">---</span>)</span>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-outline-danger py-0 px-2 small rounded-pill" onclick="logoutMember()">تسجيل الخروج</button>
+    </div>
+  </div>
+
+  <!-- Dynamic Categories -->
+  <div class="container mb-3">
+    <div class="d-flex gap-2 overflow-auto py-1" id="categoryContainer"></div>
+  </div>
+
+  <div class="container">
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="card p-3 mb-4 d-none border-primary shadow-lg rounded-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="text-primary fw-bold m-0"><i class="fa-solid fa-sliders me-1"></i>لوحة التحكم والإدارة</h6>
+        <button class="btn btn-sm btn-outline-danger" onclick="logoutAdmin()">إغلاق اللوحة</button>
+      </div>
+
+      <ul class="nav nav-tabs mb-3 flex-nowrap overflow-auto small" id="adminTabsList">
+        <li class="nav-item"><button class="nav-link active fw-bold" onclick="switchAdminTab('publish')">نشر خبر / تكليف</button></li>
+        <li class="nav-item"><button class="nav-link fw-bold text-warning" onclick="switchAdminTab('pending')"><i class="fa-solid fa-bell me-1"></i>مراجعة تقارير الزوار</button></li>
+        <li class="nav-item"><button class="nav-link fw-bold text-dark" onclick="switchAdminTab('manageNews')"><i class="fa-solid fa-pen-to-square me-1"></i>إدارة وتعديل الأخبار</button></li>
+        
+        <!-- ظهور خاص بأستاذ المادة والمطور لنشر المكتبة والبودكاست -->
+        <li class="nav-item pub-auth-tab"><button class="nav-link fw-bold text-danger" onclick="switchAdminTab('pdflib')">مكتبة PDF</button></li>
+        <li class="nav-item pub-auth-tab"><button class="nav-link fw-bold text-primary" onclick="switchAdminTab('podcast')"><i class="fa-solid fa-podcast me-1"></i>إدارة البودكاست</button></li>
+
+        <li class="nav-item"><button class="nav-link fw-bold text-primary" onclick="switchAdminTab('categories')">الأقسام</button></li>
+        <li class="nav-item"><button class="nav-link fw-bold text-success" onclick="switchAdminTab('team')">الأعضاء</button></li>
+        
+        <!-- تبويبات تظهر حصرياً للمطور -->
+        <li class="nav-item dev-only-tab"><button class="nav-link fw-bold text-danger" onclick="switchAdminTab('control')"><i class="fa-solid fa-palette me-1"></i>تحكم الواجهة والألوان</button></li>
+        <li class="nav-item dev-only-tab"><button class="nav-link fw-bold text-warning" onclick="switchAdminTab('profaccount')">أكونت أستاذ المادة</button></li>
+        <li class="nav-item dev-only-tab"><button class="nav-link fw-bold text-info" onclick="switchAdminTab('devaccount')"><i class="fa-solid fa-code me-1"></i>أكونت المطور</button></li>
+        <li class="nav-item"><button class="nav-link fw-bold text-secondary" onclick="switchAdminTab('about')">إدارة المنصة</button></li>
+      </ul>
+
+      <!-- Publish Tab -->
+      <div id="adminTabPublish">
+        <form id="newsForm" onsubmit="handleNewsSubmit(event)">
+          <input type="hidden" id="editingNewsKey" value="">
+          <div class="row g-2">
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">العنوان:</label>
+              <input type="text" id="newsTitle" class="form-control form-control-sm" required>
+            </div>
+            <div class="col-md-2 col-6">
+              <label class="form-label small fw-bold">لون العنوان:</label>
+              <input type="color" id="newsTitleColor" class="form-control form-control-color w-100" value="#d32f2f">
+            </div>
+            <div class="col-md-3 col-6">
+              <label class="form-label small fw-bold">القسم:</label>
+              <select id="newsCategory" class="form-select form-select-sm dynamic-category-select"></select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-bold text-danger">الفن الصحفي:</label>
+              <select id="newsJournalismGenre" class="form-select form-select-sm fw-bold border-danger">
+                <option value="خبر">خبر صحفي</option>
+                <option value="تقرير">تقرير صحفي</option>
+                <option value="مقال">مقال تحليلي</option>
+                <option value="حديث">حديث / حوار صحفي</option>
+              </select>
+            </div>
+            <div class="col-md-3 mt-2">
+              <label class="form-label small fw-bold">الناشر:</label>
+              <input type="text" id="newsAuthor" class="form-control form-control-sm" required>
+            </div>
+            <div class="col-12 mt-2">
+              <label class="form-label small fw-bold">الموجز:</label>
+              <textarea id="newsSummary" class="form-control form-control-sm" rows="2" required></textarea>
+            </div>
+            <div class="col-12 mt-2">
+              <label class="form-label small fw-bold">التفاصيل:</label>
+              <div id="newsBodyEditor" class="rich-editor" contenteditable="true" placeholder="اكتب تفاصيل الخبر..."></div>
+            </div>
+
+            <div class="col-md-3 mt-2">
+              <label class="form-label small fw-bold text-danger"><i class="fa-solid fa-file-pdf me-1"></i>ملف PDF:</label>
+              <input type="file" class="form-control form-control-sm" accept="application/pdf" onchange="convertFileToBase64(this, 'newsPdfUrl', 15)">
+              <input type="hidden" id="newsPdfUrl">
+            </div>
+            <div class="col-md-3 mt-2">
+              <label class="form-label small fw-bold"><i class="fa-solid fa-image me-1"></i>صورة رئيسية:</label>
+              <input type="file" class="form-control form-control-sm" accept="image/*" onchange="convertFileToBase64(this, 'newsImageUrl')">
+              <input type="hidden" id="newsImageUrl">
+            </div>
+            <div class="col-md-3 mt-2">
+              <label class="form-label small fw-bold text-success"><i class="fa-solid fa-video me-1"></i>فيديو من الهاتف:</label>
+              <input type="file" class="form-control form-control-sm" accept="video/*" onchange="convertFileToBase64(this, 'newsVideoUrl', 50)">
+              <input type="hidden" id="newsVideoUrl">
+            </div>
+            <div class="col-md-3 mt-2">
+              <label class="form-label small fw-bold text-warning"><i class="fa-solid fa-microphone me-1"></i>صوت من الهاتف:</label>
+              <input type="file" class="form-control form-control-sm" accept="audio/*" onchange="convertFileToBase64(this, 'newsAudioUrl', 30)">
+              <input type="hidden" id="newsAudioUrl">
+            </div>
+
+            <div class="col-12 mt-3 p-3 bg-light border rounded-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-label fw-bold text-primary m-0"><i class="fa-solid fa-images me-1"></i>صور إضافية مع نصوص تعريفية:</label>
+                <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="addExtraImageRow()"><i class="fa-solid fa-plus me-1"></i>إضافة صورة</button>
+              </div>
+              <div id="adminExtraImagesContainer"></div>
+            </div>
+          </div>
+          <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-sm btn-primary fw-bold" id="newsSubmitBtn">نشر المحتوى</button>
+            <button type="button" class="btn btn-sm btn-secondary fw-bold d-none" id="cancelNewsEditBtn" onclick="resetNewsForm()">إلغاء التعديل</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Pending Visitor Reports Tab -->
+      <div id="adminTabPending" class="d-none">
+        <h6 class="fw-bold small text-warning mb-3"><i class="fa-solid fa-bell me-1"></i>تقارير وتكاليف الأعضاء غير المسجلين (قيد المراجعة):</h6>
+        <div id="adminPendingNewsList" class="p-2 bg-white rounded border"></div>
+      </div>
+
+      <!-- Manage & Edit News Tab -->
+      <div id="adminTabManageNews" class="d-none">
+        <h6 class="fw-bold small text-dark mb-3"><i class="fa-solid fa-pen-to-square me-1"></i>قائمة الأخبار والتكاليف المنشورة (حذف وتعديل):</h6>
+        <div id="adminManageNewsList" class="p-2 bg-white rounded border"></div>
+      </div>
+
+      <!-- UI Customization & Colors Tab (المطور فقط) -->
+      <div id="adminTabControl" class="d-none dev-only-content">
+        <form onsubmit="handleSaveUiCustomization(event)" class="p-3 bg-light rounded border">
+          <h6 class="fw-bold small text-danger mb-3"><i class="fa-solid fa-palette me-1"></i>تحكم كامل في واجهة المنصة والألوان:</h6>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">اللون الأساسي (أحمر المنصة):</label>
+              <input type="color" id="uiColorPrimary" class="form-control form-control-color w-100" value="#b71c1c">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">لون الهيدر الداكن:</label>
+              <input type="color" id="uiColorHeader" class="form-control form-control-color w-100" value="#121624">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">لون العنوان الفرعي:</label>
+              <input type="color" id="uiColorSubtitle" class="form-control form-control-color w-100" value="#f30b07">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold">عنوان شريط العاجل الرئيسي:</label>
+              <input type="text" id="uiTickerText" class="form-control form-control-sm" placeholder="نص الشريط العاجل...">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold">عنوان الهيدر الرئيسي:</label>
+              <input type="text" id="uiHeaderMainTitle" class="form-control form-control-sm" value="منصة الصحافة وإدارة الأزمات">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-sm btn-danger fw-bold mt-3">تطبيق وحفظ إعدادات الواجهة والألوان</button>
+        </form>
+      </div>
+
+      <!-- Podcast Management Tab (المطور وأستاذ المادة فقط) -->
+      <div id="adminTabPodcast" class="d-none pub-auth-content">
+        <form onsubmit="handleSavePodcast(event)" class="p-3 bg-light rounded border mb-3">
+          <input type="hidden" id="editingPodcastKey" value="">
+          <h6 class="fw-bold small text-primary mb-3"><i class="fa-solid fa-podcast me-1"></i>نشر / تعديل حلقة بودكاست:</h6>
+          <div class="row g-2">
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">اسم / عنوان البودكاست:</label>
+              <input type="text" id="podTitle" class="form-control form-control-sm" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">اسم المقدم / الناشر:</label>
+              <input type="text" id="podAuthor" class="form-control form-control-sm" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">القسم:</label>
+              <select id="podCategory" class="form-select form-select-sm dynamic-category-select"></select>
+            </div>
+            <div class="col-md-6 mt-2">
+              <label class="form-label small fw-bold text-danger">صورة غلاف البودكاست:</label>
+              <input type="file" class="form-control form-control-sm" accept="image/*" onchange="convertFileToBase64(this, 'podCoverUrl')">
+              <input type="hidden" id="podCoverUrl">
+            </div>
+            <div class="col-md-6 mt-2">
+              <label class="form-label small fw-bold text-success">مقطع صوتي أو فيديو من الهاتف:</label>
+              <input type="file" class="form-control form-control-sm" accept="audio/*,video/*" onchange="convertFileToBase64(this, 'podMediaUrl', 50)">
+              <input type="hidden" id="podMediaUrl">
+              <select id="podMediaType" class="form-select form-select-sm mt-1">
+                <option value="audio">صوت (Audio)</option>
+                <option value="video">فيديو (Video)</option>
+              </select>
+            </div>
+          </div>
+          <div class="d-flex gap-2 mt-3">
+            <button type="submit" id="podSubmitBtn" class="btn btn-sm btn-primary fw-bold">نشر حلقة البودكاست</button>
+            <button type="button" id="podCancelBtn" class="btn btn-sm btn-secondary fw-bold d-none" onclick="resetPodcastForm()">إلغاء</button>
+          </div>
+        </form>
+        <div id="adminPodcastList" class="p-2 bg-white rounded border"></div>
+      </div>
+
+      <!-- Categories Tab -->
+      <div id="adminTabCategories" class="d-none">
+        <h6 class="fw-bold small text-primary mb-3">إدارة وتعديل أقسام الأزمات:</h6>
+        <form onsubmit="handleAddOrUpdateCategory(event)" class="row g-2 mb-3 bg-light p-2 rounded border">
+          <input type="hidden" id="editingCategoryKey" value="">
+          <div class="col-md-8 col-7"><input type="text" id="newCategoryInput" class="form-control form-control-sm" placeholder="اسم القسم..." required></div>
+          <div class="col-md-4 col-5">
+            <button type="submit" class="btn btn-sm btn-success fw-bold w-100" id="categorySubmitBtn">إضافة قسم</button>
+          </div>
+        </form>
+        <div id="adminCategoriesList" class="p-2 bg-white rounded border"></div>
+      </div>
+
+      <!-- PDF Library Tab (المطور وأستاذ المادة فقط) -->
+      <div id="adminTabPdflib" class="d-none pub-auth-content">
+        <h6 class="fw-bold small text-danger mb-3">إدارة مكتبة التكاليف (PDF فقط - المطور وأستاذ المادة):</h6>
+        <form onsubmit="handleUploadPdfLib(event)" class="p-3 bg-light rounded border mb-3">
+          <div class="row g-2">
+            <div class="col-md-5"><input type="text" id="libPdfTitle" class="form-control form-control-sm" placeholder="عنوان التكليف..." required></div>
+            <div class="col-md-4"><input type="file" id="libPdfFileInput" class="form-control form-control-sm" accept="application/pdf" required onchange="convertFileToBase64(this, 'libPdfBase64', 30)"><input type="hidden" id="libPdfBase64"></div>
+            <div class="col-md-3"><button type="submit" class="btn btn-sm btn-danger fw-bold w-100">رفع للمكتبة</button></div>
+          </div>
+        </form>
+        <div id="adminPdfLibraryList" class="p-2 bg-white rounded border"></div>
+      </div>
+
+      <!-- Team Members Tab -->
+      <div id="adminTabTeam" class="d-none">
+        <form id="teamMemberForm" onsubmit="handleSaveTeamMember(event)" class="p-3 bg-light rounded-3 mb-3 border">
+          <input type="hidden" id="editingMemberKey" value="">
+          <h6 class="fw-bold small text-success mb-2">إضافة / تعديل عضو:</h6>
+          <div class="row g-2">
+            <div class="col-md-4"><input type="text" id="memberName" class="form-control form-control-sm" placeholder="الاسم" required></div>
+            <div class="col-md-4"><input type="text" id="memberRole" class="form-control form-control-sm" placeholder="المسمى" required></div>
+            <div class="col-md-4">
+              <select id="memberSection" class="form-select form-select-sm">
+                <option value="supervisors"> استاذ المادة</option>
+                <option value="admin">أدمن</option>
+                <option value="editors">طالب  </option>
+              </select>
+            </div>
+            <div class="col-md-4"><input type="text" id="memberUsername" class="form-control form-control-sm" placeholder="اسم المستخدم"></div>
+            <div class="col-md-4"><input type="text" id="memberPassword" class="form-control form-control-sm" placeholder="كلمة المرور"></div>
+            <div class="col-md-4"><input type="text" id="memberSecretId" class="form-control form-control-sm border-danger" placeholder="كود التحقق (ID)"></div>
+            <div class="col-12">
+              <label class="form-label small fw-bold m-0">الصورة الشخصية من الهاتف:</label>
+              <input type="file" class="form-control form-control-sm" accept="image/*" onchange="convertFileToBase64(this, 'memberPhotoUrl')">
+              <input type="hidden" id="memberPhotoUrl">
+            </div>
+          </div>
+          <div class="d-flex gap-2 mt-3">
+            <button type="submit" id="saveMemberBtn" class="btn btn-sm btn-success fw-bold">حفظ العضو</button>
+            <button type="button" id="cancelMemberEditBtn" class="btn btn-sm btn-secondary fw-bold d-none" onclick="resetMemberForm()">إلغاء</button>
+          </div>
+        </form>
+        <div id="adminTeamMemberList" class="p-2 bg-white rounded border"></div>
+      </div>
+
+      <!-- Professor Account Tab -->
+      <div id="adminTabProfaccount" class="d-none dev-only-content">
+        <form onsubmit="handleUpdateProfessorAccount(event)" class="p-3 bg-light rounded border">
+          <h6 class="fw-bold small text-warning mb-3">تعديل أكونت أستاذ المادة:</h6>
+          <div class="row g-2">
+            <div class="col-md-6"><label class="form-label small fw-bold">اسم أستاذ المادة:</label><input type="text" id="profAccountName" class="form-control form-control-sm" required></div>
+            <div class="col-md-6"><label class="form-label small fw-bold">اسم المستخدم:</label><input type="text" id="profAccountUser" class="form-control form-control-sm" required></div>
+            <div class="col-md-6"><label class="form-label small fw-bold">كلمة المرور:</label><input type="text" id="profAccountPass" class="form-control form-control-sm" required></div>
+            <div class="col-md-6"><label class="form-label small fw-bold">كود التحقق (ID):</label><input type="text" id="profAccountSecretId" class="form-control form-control-sm border-danger" required></div>
+          </div>
+          <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold mt-3">حفظ أكونت أستاذ المادة</button>
+        </form>
+      </div>
+
+      <!-- Developer Account Tab -->
+      <div id="adminTabDevaccount" class="d-none dev-only-content">
+        <form onsubmit="handleUpdateDeveloperAccount(event)" class="p-3 bg-light rounded border">
+          <h6 class="fw-bold small text-info mb-3">تعديل أكونت المطور:</h6>
+          <div class="row g-2">
+            <div class="col-md-6"><label class="form-label small fw-bold">اسم المطور:</label><input type="text" id="devAccountName" class="form-control form-control-sm" required></div>
+            <div class="col-md-6"><label class="form-label small fw-bold">اسم المستخدم:</label><input type="text" id="devAccountUser" class="form-control form-control-sm" required></div>
+            <div class="col-md-6"><label class="form-label small fw-bold">كلمة المرور:</label><input type="text" id="devAccountPass" class="form-control form-control-sm" required></div>
+            <div class="col-md-6"><label class="form-label small fw-bold">كود المطور (ID):</label><input type="text" id="devAccountSecretId" class="form-control form-control-sm border-info" required></div>
+          </div>
+          <button type="submit" class="btn btn-sm btn-info text-white fw-bold mt-3">حفظ أكونت المطور</button>
+        </form>
+      </div>
+
+      <!-- Platform / About Tab -->
+      <div id="adminTabAbout" class="d-none">
+        <form onsubmit="savePlatformInfo(event)" class="p-3 bg-light rounded border">
+          <h6 class="fw-bold small text-secondary mb-3">إدارة بيانات المنصة والكلية:</h6>
+          <div class="row g-2">
+            <div class="col-md-6"><label class="form-label small fw-bold">اسم الجامعة:</label><input type="text" id="inputUniName" class="form-control form-control-sm" value="جامعة المنيا"></div>
+            <div class="col-md-6"><label class="form-label small fw-bold">اسم الكلية:</label><input type="text" id="inputCollName" class="form-control form-control-sm" value="كلية التربية النوعية"></div>
+            <div class="col-md-6"><label class="form-label small fw-bold">عميد الكلية:</label><input type="text" id="inputDeanName" class="form-control form-control-sm"></div>
+            <div class="col-md-6"><label class="form-label small fw-bold">أستاذ المادة:</label><input type="text" id="inputProfName" class="form-control form-control-sm"></div>
+            <div class="col-12"><label class="form-label small fw-bold">نبذة المنصة:</label><textarea id="inputAboutDesc" class="form-control form-control-sm" rows="2"></textarea></div>
+            <div class="col-md-6"><label class="form-label small fw-bold">شعار الجامعة:</label><input type="file" class="form-control form-control-sm" accept="image/*" onchange="convertFileToBase64(this, 'inputUniLogo')"><input type="hidden" id="inputUniLogo"></div>
+            <div class="col-md-6"><label class="form-label small fw-bold">شعار الكلية:</label><input type="file" class="form-control form-control-sm" accept="image/*" onchange="convertFileToBase64(this, 'inputCollLogo')"><input type="hidden" id="inputCollLogo"></div>
+          </div>
+          <button type="submit" class="btn btn-sm btn-secondary fw-bold mt-3">حفظ بيانات المنصة</button>
+        </form>
+      </div>
+
+    </div>
+
+    <!-- Published News List -->
+    <div class="mb-3 d-flex justify-content-between align-items-center">
+      <h5 class="fw-bold text-dark m-0"><i class="fa-solid fa-newspaper text-primary me-2"></i>الأزمات والتكاليف المنشورة</h5>
+    </div>
+    <div id="newsFeed">
+      <div class="text-center py-4 text-muted"><i class="fa-solid fa-spinner fa-spin me-2"></i> جاري التحميل...</div>
+    </div>
+
+    <!-- Reporter Submission Section -->
+    <div id="reporterSection" class="card p-3 my-4 border-warning shadow-sm rounded-4">
+      <div class="text-center mb-2">
+        <span class="badge bg-warning text-dark px-3 py-1 rounded-pill small mb-1">تقديم التكاليف / تغطية الأزمة</span>
+        <h5 class="fw-bold text-dark m-0"><i class="fa-solid fa-paper-plane text-warning me-1"></i>إرسال تقرير أو ملف (أعضاء غير مسجلين / زوار)</h5>
+      </div>
+
+      <form onsubmit="handleReporterSubmit(event)">
+        <div class="row g-2">
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">عنوان التقرير / التكليف:</label>
+            <input type="text" id="reporterNewsTitle" class="form-control form-control-sm" required>
+          </div>
+          <div class="col-md-2 col-6">
+            <label class="form-label small fw-bold">لون العنوان:</label>
+            <input type="color" id="reporterNewsTitleColor" class="form-control form-control-color w-100" value="#d32f2f">
+          </div>
+          <div class="col-md-3 col-6">
+            <label class="form-label small fw-bold">القسم:</label>
+            <select id="reporterNewsCategory" class="form-select form-select-sm dynamic-category-select"></select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-bold text-danger">الفن الصحفي:</label>
+            <select id="reporterNewsGenre" class="form-select form-select-sm fw-bold border-danger">
+              <option value="تقرير">تقرير صحفي</option>
+              <option value="خبر">خبر صحفي</option>
+              <option value="مقال">مقال تحليلي</option>
+              <option value="حديث">حديث / حوار</option>
+            </select>
+          </div>
+          <div class="col-md-3 mt-2">
+            <label class="form-label small fw-bold">اسم الناشر / الطالب:</label>
+            <input type="text" id="reporterAuthor" class="form-control form-control-sm" required>
+          </div>
+          <div class="col-12 mt-2">
+            <label class="form-label small fw-bold">نص التقرير:</label>
+            <div id="reporterNewsBodyEditor" class="rich-editor" contenteditable="true"></div>
+          </div>
+          <div class="col-md-3 mt-3"><label class="form-label small fw-bold text-danger">PDF:</label><input type="file" class="form-control form-control-sm" accept="application/pdf" onchange="convertFileToBase64(this, 'reporterNewsPdfUrl', 15)"><input type="hidden" id="reporterNewsPdfUrl"></div>
+          <div class="col-md-3 mt-3"><label class="form-label small fw-bold">صورة:</label><input type="file" class="form-control form-control-sm" accept="image/*" onchange="convertFileToBase64(this, 'reporterNewsImgUrl')"><input type="hidden" id="reporterNewsImgUrl"></div>
+          <div class="col-md-3 mt-3"><label class="form-label small fw-bold text-success">فيديو:</label><input type="file" class="form-control form-control-sm" accept="video/*" onchange="convertFileToBase64(this, 'reporterNewsVideoUrl', 50)"><input type="hidden" id="reporterNewsVideoUrl"></div>
+          <div class="col-md-3 mt-3"><label class="form-label small fw-bold text-warning">صوت:</label><input type="file" class="form-control form-control-sm" accept="audio/*" onchange="convertFileToBase64(this, 'reporterNewsAudioUrl', 30)"><input type="hidden" id="reporterNewsAudioUrl"></div>
+        </div>
+        <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold mt-3 w-100">إرسال التقرير للمراجعة والنشر</button>
+      </form>
+    </div>
+
+    <!-- PDF Assignments Library Section -->
+    <div id="pdfLibrarySection" class="card p-3 my-4 border-danger shadow-sm rounded-4">
+      <div class="text-center mb-3">
+        <span class="badge bg-danger text-white px-3 py-1 rounded-pill small mb-1">المكتبة الأكاديمية</span>
+        <h5 class="fw-bold text-dark m-0"><i class="fa-solid fa-book-bookmark text-danger me-1"></i>مكتبة التكاليف (ملفات PDF)</h5>
+      </div>
+      <div id="publicPdfLibraryContainer" class="row g-3">
+        <div class="text-center py-3 text-muted small"><i class="fa-solid fa-spinner fa-spin me-1"></i> جاري تحميل المكتبة...</div>
+      </div>
+    </div>
+
+    <!-- Podcast Section -->
+    <div id="podcastSection" class="card p-3 my-4 border-primary shadow-sm rounded-4 bg-white">
+      <div class="text-center mb-3">
+        <span class="badge bg-primary text-white px-3 py-1 rounded-pill small mb-1">الركن الصوتي والمرئي</span>
+        <h5 class="fw-bold text-dark m-0"><i class="fa-solid fa-podcast text-primary me-1"></i>بودكاست الصحافة والأزمات</h5>
+      </div>
+      <div id="publicPodcastContainer" class="row g-3">
+        <div class="text-center py-3 text-muted small"><i class="fa-solid fa-spinner fa-spin me-1"></i> جاري تحميل حلقات البودكاست...</div>
+      </div>
+    </div>
+
+    <!-- Team Members Section -->
+    <div id="teamSection" class="my-4">
+      <div class="text-center mb-3">
+        <h5 class="fw-bold text-dark"><i class="fa-solid fa-users me-2 text-primary"></i>فريق عمل الصحافة وإدارة الأزمات</h5>
+      </div>
+      <div class="mb-4"><h6 class="fw-bold border-bottom pb-1 text-primary">أستاذ المادة / المشرفون</h6><div class="row g-2 mt-1" id="supervisorsGrid"></div></div>
+      <div class="mb-4"><h6 class="fw-bold border-bottom pb-1 text-success">الأدمن </h6><div class="row g-2 mt-1" id="adminGrid"></div></div>
+      <div class="mb-4"><h6 class="fw-bold border-bottom pb-1 text-danger">المراسلون</h6><div class="row g-2 mt-1" id="editorsGrid"></div></div>
+    </div>
+
+    <!-- About / Platform Section -->
+    <div id="aboutSection" class="about-footer-section">
+      <div class="text-center">
+        <div class="d-flex justify-content-center align-items-center gap-3 mb-3" id="displayLogosContainer"></div>
+        <h5 class="fw-bold text-primary mb-1" id="displayUniCollTitle">جامعة المنيا - كلية التربية النوعية</h5>
+        <h6 class="fw-bold text-secondary mb-3" id="displayPlatformTitle">منصة الصحافة وإدارة الأزمات</h6>
+        <div class="row justify-content-center text-center small text-muted g-2 mb-3">
+          <div class="col-md-4"><strong>عميد الكلية:</strong> <span id="displayDeanName">---</span></div>
+          <div class="col-md-4"><strong>أستاذ المادة:</strong> <span id="displayProfName">---</span></div>
+        </div>
+        <p class="text-secondary small mb-0" id="displayAboutDescription">منصة تدريبية لتطبيق الفنون الصحفية في أوقات الأزمات والطوارئ.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Full News Reader Modal -->
+  <div class="modal fade" id="fullNewsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+      <div class="modal-content rounded-4 border-0">
+        <div class="modal-header border-0 pb-0">
+          <div class="d-flex gap-2">
+            <span class="badge bg-warning text-dark fw-bold px-3 py-1" id="modalCategory">القسم</span>
+            <span class="badge bg-danger text-white fw-bold px-3 py-1" id="modalGenre">الفن الصحفي</span>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-3">
+          <h4 class="fw-bold mb-2" id="modalTitle">عنوان الخبر</h4>
+          <div class="d-flex align-items-center gap-2 mb-3 p-2 bg-light rounded-3">
+            <div>
+              <div class="small fw-bold text-dark" id="modalAuthorName">الناشر</div>
+              <div class="text-muted" style="font-size: 0.7rem;" id="modalNewsDate">التاريخ</div>
+            </div>
+          </div>
+          <div id="modalPdfContainer"></div>
+          <div id="modalTopImagesContainer"></div>
+          <div id="modalVideoContainer" class="my-3 text-center"></div>
+          <div id="modalAudioContainer" class="my-3"></div>
+          <div class="lh-lg text-secondary mb-3 fs-6" id="modalBody"></div>
+          <div id="modalExtraImagesContainer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unified Login Modal -->
+  <div class="modal fade" id="unifiedLoginModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content rounded-4 border-0 p-3 shadow-lg">
+        <div class="modal-header border-0 p-0 mb-3">
+          <h6 class="modal-header-title fw-bold text-dark m-0">تسجيل الدخول</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0">
+          <select id="loginRoleSelector" class="form-select form-select-sm mb-3 fw-bold">
+            <option value="developer">المطور</option>
+            <option value="professor">أستاذ المادة</option>
+            <option value="member">عضو </option>
+          </select>
+          <input type="text" id="loginUsernameInput" class="form-control form-control-sm mb-2" placeholder="اسم المستخدم">
+          <input type="password" id="loginPasswordInput" class="form-control form-control-sm mb-2" placeholder="كلمة المرور">
+          <input type="password" id="loginSecretIdInput" class="form-control form-control-sm mb-3 border-danger" placeholder="كود التحقق / سري (ID)">
+          <button class="btn btn-sm btn-primary w-100 fw-bold" onclick="executeLogin()">دخول</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Zoom Modal -->
+  <div class="modal fade" id="imageZoomModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content bg-transparent border-0">
+        <div class="modal-body p-0 text-center position-relative">
+          <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3 z-3" data-bs-dismiss="modal"></button>
+          <img id="zoomedImageDisplay" src="" class="img-fluid rounded shadow" style="max-height: 85vh; object-fit: contain;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <a href="#" class="nav-item-btn active" onclick="showMainFeedView(); return false;"><i class="fa-solid fa-house"></i>الرئيسية</a>
+    <a href="#reporterSection" class="nav-item-btn text-warning" onclick="showReporterSection(); return false;"><i class="fa-solid fa-file-arrow-up"></i>رفع تكليف</a>
+    <a href="#pdfLibrarySection" class="nav-item-btn text-danger" onclick="scrollToPdfLibrary(); return false;"><i class="fa-solid fa-book-bookmark"></i>المكتبة</a>
+    <a href="#podcastSection" class="nav-item-btn text-primary" onclick="scrollToPodcast(); return false;"><i class="fa-solid fa-podcast"></i>البودكاست</a>
+    <a href="#teamSection" class="nav-item-btn" onclick="scrollToTeamSection(); return false;"><i class="fa-solid fa-users"></i>الاعضاء</a>
+    <a href="#aboutSection" class="nav-item-btn" onclick="scrollToAboutSection(); return false;"><i class="fa-solid fa-circle-info"></i>المنصة</a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    let allNewsData = {};
+    let pendingNewsData = {};
+    let podcastData = {};
+    let teamMembersData = {};
+    let pdfLibraryData = {};
+    let rawCategoriesData = {};
+    let siteCategories = ["الكل", "أخبار عاجلة", "تقارير الأزمة", "مقالات تحليلية", "تغطية ميدانية"];
+    let currentCategoryFilter = 'الكل';
+    let currentLoggedInUser = null;
+
+    let fullNewsModalInstance = null;
+    let imageZoomModalInstance = null;
+    let unifiedLoginModalInstance = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      fullNewsModalInstance = new bootstrap.Modal(document.getElementById('fullNewsModal'));
+      imageZoomModalInstance = new bootstrap.Modal(document.getElementById('imageZoomModal'));
+      unifiedLoginModalInstance = new bootstrap.Modal(document.getElementById('unifiedLoginModal'));
+
+      listenToCategories();
+      listenToFirebaseNews();
+      listenToPendingNews();
+      listenToPodcast();
+      listenToTeamMembers();
+      listenToPdfLibrary();
+      listenToPlatformInfo();
+      listenToUiCustomization();
+      listenToProfessorAccount();
+      listenToDeveloperAccount();
+    });
+
+    function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
+    
+    function openZoomImage(src) {
+      if (!src) return;
+      document.getElementById('zoomedImageDisplay').src = src;
+      imageZoomModalInstance.show();
+    }
+
+    function showReporterSection() { document.getElementById('reporterSection').scrollIntoView({ behavior: 'smooth' }); }
+    function scrollToTeamSection() { document.getElementById('teamSection').scrollIntoView({ behavior: 'smooth' }); }
+    function scrollToAboutSection() { document.getElementById('aboutSection').scrollIntoView({ behavior: 'smooth' }); }
+    function scrollToPdfLibrary() { document.getElementById('pdfLibrarySection').scrollIntoView({ behavior: 'smooth' }); }
+    function scrollToPodcast() { document.getElementById('podcastSection').scrollIntoView({ behavior: 'smooth' }); }
+    function showMainFeedView() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+    function openUnifiedLoginModal() { unifiedLoginModalInstance.show(); }
+
+    function convertFileToBase64(fileInput, targetInputId, maxMb = 50) {
+      const file = fileInput.files[0];
+      if (file) {
+        if (file.size > maxMb * 1024 * 1024) {
+          alert(`حجم الملف كبير جداً (أقصى حد ${maxMb} ميجابايت).`);
+          fileInput.value = "";
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          document.getElementById(targetInputId).value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function addExtraImageRow(imgData = "", captionData = "", posData = "bottom") {
+      const container = document.getElementById('adminExtraImagesContainer');
+      const rowId = 'extra_img_' + Date.now() + Math.random().toString(36).substr(2, 4);
+      const div = document.createElement('div');
+      div.className = "row g-2 align-items-center mb-2 p-2 border rounded bg-white";
+      div.id = rowId;
+      div.innerHTML = `
+        <div class="col-md-4">
+          <input type="file" class="form-control form-control-sm" accept="image/*" onchange="convertFileToBase64(this, '${rowId}_base64')">
+          <input type="hidden" id="${rowId}_base64" value="${imgData}">
+        </div>
+        <div class="col-md-4">
+          <input type="text" class="form-control form-control-sm extra-img-caption" placeholder="وصف تعريفي للصورة..." value="${captionData}">
+        </div>
+        <div class="col-md-3">
+          <select class="form-select form-select-sm extra-img-position">
+            <option value="top" ${posData==='top'?'selected':''}>أعلى الخبر</option>
+            <option value="inline" ${posData==='inline'?'selected':''}>وسط النص</option>
+            <option value="bottom" ${posData==='bottom'?'selected':''}>أسفل الخبر</option>
+          </select>
+        </div>
+        <div class="col-md-1 text-center">
+          <button type="button" class="btn btn-sm btn-outline-danger" onclick="document.getElementById('${rowId}').remove()"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      `;
+      container.appendChild(div);
+    }
+
+    // UI Customization Settings (اللون والأشكال بالكامل من المطور)
+    function listenToUiCustomization() {
+      db.ref('settings/uiCustomization').on('value', snap => {
+        if(snap.exists()) {
+          const cfg = snap.val();
+          document.documentElement.style.setProperty('--primary-orange', cfg.colorPrimary || '#b71c1c');
+          document.documentElement.style.setProperty('--primary-dark', cfg.colorHeader || '#121624');
+          document.documentElement.style.setProperty('--subtitle-color', cfg.colorSubtitle || '#f30b07');
+
+          document.getElementById('uiColorPrimary').value = cfg.colorPrimary || '#b71c1c';
+          document.getElementById('uiColorHeader').value = cfg.colorHeader || '#121624';
+          document.getElementById('uiColorSubtitle').value = cfg.colorSubtitle || '#f30b07';
+          document.getElementById('uiTickerText').value = cfg.tickerText || '';
+          document.getElementById('uiHeaderMainTitle').value = cfg.headerMainTitle || 'منصة الصحافة وإدارة الأزمات';
+
+          if(cfg.headerMainTitle) document.getElementById('displayHeaderTitle').innerText = cfg.headerMainTitle;
+          if(cfg.tickerText) document.getElementById('displayTickerText').innerText = cfg.tickerText;
+        }
+      });
+    }
+
+    function handleSaveUiCustomization(e) {
+      e.preventDefault();
+      const payload = {
+        colorPrimary: document.getElementById('uiColorPrimary').value,
+        colorHeader: document.getElementById('uiColorHeader').value,
+        colorSubtitle: document.getElementById('uiColorSubtitle').value,
+        tickerText: document.getElementById('uiTickerText').value.trim(),
+        headerMainTitle: document.getElementById('uiHeaderMainTitle').value.trim()
+      };
+      db.ref('settings/uiCustomization').set(payload).then(() => {
+        alert("تم تحديث وحفظ تصميم واجهة وألوان المنصة بنجاح!");
+      });
+    }
+
+    // Categories
+    function listenToCategories() {
+      db.ref('categories').on('value', (snapshot) => {
+        rawCategoriesData = snapshot.val() || {};
+        let catList = snapshot.exists() ? Object.values(rawCategoriesData) : ["أخبار عاجلة", "تقارير الأزمة", "مقالات تحليلية"];
+        siteCategories = ["الكل", ...catList];
+        renderCategoryButtons();
+        updateCategoryDropdowns();
+        renderAdminCategoriesList();
+      });
+    }
+
+    function renderCategoryButtons() {
+      const container = document.getElementById('categoryContainer');
+      if (container) {
+        container.innerHTML = siteCategories.map(cat => `
+          <button class="category-btn ${cat === currentCategoryFilter ? 'active' : ''}" onclick="filterCategory('${cat}')">${cat}</button>
+        `).join('');
+      }
+    }
+    function updateCategoryDropdowns() {
+      const selects = document.querySelectorAll('.dynamic-category-select');
+      const cats = siteCategories.filter(c => c !== 'الكل');
+      selects.forEach(select => {
+        select.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+      });
+    }
+    function filterCategory(cat) {
+      currentCategoryFilter = cat;
+      renderCategoryButtons();
+      renderNewsFeed();
+    }
+
+    function handleAddOrUpdateCategory(e) {
+      e.preventDefault();
+      const editingKey = document.getElementById('editingCategoryKey').value;
+      const name = document.getElementById('newCategoryInput').value.trim();
+      if(!name) return;
+
+      if(editingKey) {
+        db.ref('categories/' + editingKey).set(name).then(() => {
+          alert("تم تعديل القسم بنجاح!");
+          resetCategoryForm();
+        });
+      } else {
+        db.ref('categories').push(name).then(() => {
+          alert("تم إضافة القسم بنجاح!");
+          document.getElementById('newCategoryInput').value = '';
+        });
+      }
+    }
+
+    function editCategory(k, name) {
+      document.getElementById('editingCategoryKey').value = k;
+      document.getElementById('newCategoryInput').value = name;
+      document.getElementById('categorySubmitBtn').innerText = "تعديل القسم";
+    }
+
+    function resetCategoryForm() {
+      document.getElementById('editingCategoryKey').value = '';
+      document.getElementById('newCategoryInput').value = '';
+      document.getElementById('categorySubmitBtn').innerText = "إضافة قسم";
+    }
+
+    function renderAdminCategoriesList() {
+      const container = document.getElementById('adminCategoriesList');
+      if(!container) return;
+      const keys = Object.keys(rawCategoriesData);
+      if(keys.length === 0) { container.innerHTML = '<span class="text-muted small">لا توجد أقسام.</span>'; return; }
+      container.innerHTML = keys.map(k => `
+        <div class="d-flex justify-content-between align-items-center p-1 border-bottom">
+          <span class="small fw-bold">${rawCategoriesData[k]}</span>
+          <div>
+            <button class="btn btn-sm btn-outline-primary py-0 px-1 me-1" onclick="editCategory('${k}', '${rawCategoriesData[k]}')"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="db.ref('categories/${k}').remove()"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // PDF Library (المطور وأستاذ المادة فقط)
+    function listenToPdfLibrary() {
+      db.ref('pdfLibrary').on('value', snap => {
+        pdfLibraryData = snap.val() || {};
+        renderPublicPdfLibrary();
+        renderAdminPdfLibrary();
+      });
+    }
+
+    function handleUploadPdfLib(e) {
+      e.preventDefault();
+      const title = document.getElementById('libPdfTitle').value.trim();
+      const pdfBase64 = document.getElementById('libPdfBase64').value;
+      if(!pdfBase64) { alert("يرجى اختيار ملف PDF صالح!"); return; }
+      db.ref('pdfLibrary').push({ title, pdfUrl: pdfBase64, createdAt: Date.now() }).then(() => {
+        alert("تم رفع التكليف بنجاح للمكتبة!");
+        document.getElementById('libPdfTitle').value = '';
+        document.getElementById('libPdfFileInput').value = '';
+        document.getElementById('libPdfBase64').value = '';
+      });
+    }
+
+    function renderPublicPdfLibrary() {
+      const container = document.getElementById('publicPdfLibraryContainer');
+      if(!container) return;
+      const keys = Object.keys(pdfLibraryData);
+      if(keys.length === 0) { container.innerHTML = '<div class="text-center text-muted small">لا توجد ملفات تكليفات مضافة حالياً.</div>'; return; }
+      container.innerHTML = keys.map(k => {
+        const item = pdfLibraryData[k];
+        return `
+          <div class="col-md-4">
+            <div class="p-3 bg-white border border-danger rounded-4 shadow-sm text-center">
+              <i class="fa-solid fa-file-pdf fa-3x text-danger mb-2"></i>
+              <h6 class="fw-bold text-dark">${item.title}</h6>
+              <div class="d-flex justify-content-center gap-2 mt-3">
+                <a href="${item.pdfUrl}" target="_blank" class="btn btn-sm btn-outline-danger fw-bold"><i class="fa-solid fa-eye me-1"></i>فتح PDF</a>
+                <a href="${item.pdfUrl}" download="${item.title}.pdf" class="btn btn-sm btn-danger fw-bold"><i class="fa-solid fa-download me-1"></i>تحميل</a>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderAdminPdfLibrary() {
+      const container = document.getElementById('adminPdfLibraryList');
+      if(!container) return;
+      const keys = Object.keys(pdfLibraryData);
+      if(keys.length === 0) { container.innerHTML = '<span class="text-muted small">المكتبة فارغة.</span>'; return; }
+      container.innerHTML = keys.map(k => {
+        const item = pdfLibraryData[k];
+        return `
+          <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+            <span class="small fw-bold"><i class="fa-solid fa-file-pdf text-danger me-1"></i>${item.title}</span>
+            <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="db.ref('pdfLibrary/${k}').remove()"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Podcast (المطور وأستاذ المادة فقط)
+    function listenToPodcast() {
+      db.ref('podcasts').on('value', snap => {
+        podcastData = snap.val() || {};
+        renderPublicPodcast();
+        renderAdminPodcastList();
+      });
+    }
+
+    function handleSavePodcast(e) {
+      e.preventDefault();
+      const editingKey = document.getElementById('editingPodcastKey').value;
+      const payload = {
+        title: document.getElementById('podTitle').value.trim(),
+        author: document.getElementById('podAuthor').value.trim(),
+        category: document.getElementById('podCategory').value,
+        coverUrl: document.getElementById('podCoverUrl').value,
+        mediaUrl: document.getElementById('podMediaUrl').value,
+        mediaType: document.getElementById('podMediaType').value,
+        createdAt: Date.now()
+      };
+
+      if(editingKey) {
+        db.ref('podcasts/' + editingKey).update(payload).then(() => {
+          alert("تم تحديث حلقة البودكاست بنجاح!");
+          resetPodcastForm();
+        });
+      } else {
+        db.ref('podcasts').push(payload).then(() => {
+          alert("تم نشر حلقة البودكاست بنجاح!");
+          resetPodcastForm();
+        });
+      }
+    }
+
+    function editPodcast(k) {
+      const item = podcastData[k];
+      if(!item) return;
+      document.getElementById('editingPodcastKey').value = k;
+      document.getElementById('podTitle').value = item.title || '';
+      document.getElementById('podAuthor').value = item.author || '';
+      document.getElementById('podCategory').value = item.category || '';
+      document.getElementById('podCoverUrl').value = item.coverUrl || '';
+      document.getElementById('podMediaUrl').value = item.mediaUrl || '';
+      document.getElementById('podMediaType').value = item.mediaType || 'audio';
+      document.getElementById('podSubmitBtn').innerText = "تحديث حلقة البودكاست";
+      document.getElementById('podCancelBtn').classList.remove('d-none');
+    }
+
+    function resetPodcastForm() {
+      document.getElementById('editingPodcastKey').value = '';
+      document.getElementById('podTitle').value = '';
+      document.getElementById('podAuthor').value = '';
+      document.getElementById('podCoverUrl').value = '';
+      document.getElementById('podMediaUrl').value = '';
+      document.getElementById('podSubmitBtn').innerText = "نشر حلقة البودكاست";
+      document.getElementById('podCancelBtn').classList.add('d-none');
+    }
+
+    function renderPublicPodcast() {
+      const container = document.getElementById('publicPodcastContainer');
+      if (!container) return;
+      const keys = Object.keys(podcastData);
+      if (keys.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted small">لا توجد حلقات بودكاست مرفوعة حالياً.</div>';
+        return;
+      }
+      container.innerHTML = keys.map(k => {
+        const item = podcastData[k];
+        return `
+          <div class="col-md-6">
+            <div class="p-3 bg-light border border-primary rounded-4 shadow-sm">
+              <div class="d-flex align-items-center gap-3 mb-2">
+                ${item.coverUrl ? `<img src="${item.coverUrl}" style="width:65px; height:65px; object-fit:cover; border-radius:10px;" class="cursor-pointer" onclick="openZoomImage('${item.coverUrl}')">` : '<i class="fa-solid fa-podcast text-primary fs-2"></i>'}
+                <div>
+                  <h6 class="fw-bold text-dark m-0">${item.title}</h6>
+                  <span class="badge bg-primary mt-1" style="font-size: 0.65rem;">${item.category}</span>
+                </div>
+              </div>
+              ${item.mediaUrl && item.mediaType === 'video' ? `<video src="${item.mediaUrl}" controls class="w-100 rounded mb-2" style="max-height: 250px; background:#000;"></video>` : ''}
+              ${item.mediaUrl && item.mediaType === 'audio' ? `<audio src="${item.mediaUrl}" controls class="w-100"></audio>` : ''}
+              <div class="text-muted small mt-2 d-flex justify-content-between">
+                <span>المقدم: ${item.author}</span>
+                <span>${new Date(item.createdAt || Date.now()).toLocaleDateString('ar-EG')}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderAdminPodcastList() {
+      const container = document.getElementById('adminPodcastList');
+      if(!container) return;
+      const keys = Object.keys(podcastData);
+      if(keys.length === 0) { container.innerHTML = '<span class="text-muted small">لا توجد حلقات بودكاست.</span>'; return; }
+      container.innerHTML = keys.map(k => {
+        const item = podcastData[k];
+        return `
+          <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+            <span class="small fw-bold"><i class="fa-solid fa-podcast text-primary me-1"></i>${item.title} (${item.author})</span>
+            <div>
+              <button class="btn btn-sm btn-outline-primary py-0 px-1 me-1" onclick="editPodcast('${k}')"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="db.ref('podcasts/${k}').remove()"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // News & Pending Reports
+    function listenToFirebaseNews() {
+      db.ref('news').on('value', (snapshot) => {
+        allNewsData = snapshot.val() || {};
+        renderNewsFeed();
+        renderAdminManageNews();
+      });
+    }
+
+    function listenToPendingNews() {
+      db.ref('pendingNews').on('value', (snapshot) => {
+        pendingNewsData = snapshot.val() || {};
+        renderAdminPendingNews();
+      });
+    }
+
+    function renderNewsFeed() {
+      const container = document.getElementById('newsFeed');
+      if (!container) return;
+      const keys = Object.keys(allNewsData).reverse();
+      let filteredKeys = keys;
+      if (currentCategoryFilter !== 'الكل') {
+        filteredKeys = filteredKeys.filter(k => allNewsData[k].category === currentCategoryFilter);
+      }
+
+      if (filteredKeys.length === 0) {
+        container.innerHTML = `<div class="text-center py-4 text-muted small">لا توجد أخبار منشورة حالياً.</div>`;
+        return;
+      }
+
+      container.innerHTML = filteredKeys.map(key => {
+        const item = allNewsData[key];
+        let mediaHtml = item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.title}" onclick="openZoomImage('${item.imageUrl}')">` : '';
+
+        return `
+          <div class="news-card">
+            <div class="card-media-wrapper">
+              <span class="news-badge">${item.category || 'عاجل'}</span>
+              <span class="badge bg-danger position-absolute top-0 start-0 m-2" style="font-size: 0.7rem; z-index: 5;">${item.genre || 'خبر'}</span>
+              ${mediaHtml}
+            </div>
+            <div class="card-content">
+              <h5 class="card-news-title" style="color: ${item.titleColor || '#d32f2f'};" onclick="openFullNewsModal('${key}')">${item.title}</h5>
+              <p class="text-secondary small mb-2">${item.summary || ''}</p>
+              <div class="d-flex justify-content-between align-items-center text-muted small border-top pt-2">
+                <span>${item.author || 'المحرر'}</span>
+                <span>${new Date(item.createdAt || Date.now()).toLocaleDateString('ar-EG')}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderAdminPendingNews() {
+      const container = document.getElementById('adminPendingNewsList');
+      if (!container) return;
+      const keys = Object.keys(pendingNewsData);
+      if (keys.length === 0) { container.innerHTML = '<span class="text-muted small">لا توجد تقارير معلقة من الزوار.</span>'; return; }
+      container.innerHTML = keys.map(k => {
+        const item = pendingNewsData[k];
+        return `
+          <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+            <div>
+              <span class="fw-bold small">${item.title}</span> <span class="badge bg-warning text-dark" style="font-size: 0.65rem;">${item.author}</span>
+            </div>
+            <div class="d-flex gap-1">
+              <button class="btn btn-sm btn-success py-0 px-2 fw-bold" onclick="approveVisitorNews('${k}')">موافقة ونشر</button>
+              <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="db.ref('pendingNews/${k}').remove()"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function approveVisitorNews(k) {
+      const item = pendingNewsData[k];
+      if(!item) return;
+      db.ref('news').push(item).then(() => {
+        db.ref('pendingNews/' + k).remove();
+        alert("تمت الموافقة على التقرير ونشره بنجاح!");
+      });
+    }
+
+    function renderAdminManageNews() {
+      const container = document.getElementById('adminManageNewsList');
+      if (!container) return;
+      const keys = Object.keys(allNewsData).reverse();
+      if (keys.length === 0) { container.innerHTML = '<span class="text-muted small">لا توجد أخبار لإدارتها.</span>'; return; }
+      container.innerHTML = keys.map(k => {
+        const item = allNewsData[k];
+        return `
+          <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+            <div>
+              <span class="fw-bold small">${item.title}</span> <span class="badge bg-secondary" style="font-size: 0.65rem;">${item.genre || 'خبر'}</span>
+            </div>
+            <div class="d-flex gap-1">
+              <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editNewsItem('${k}')"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="db.ref('news/${k}').remove()"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function editNewsItem(k) {
+      const item = allNewsData[k];
+      if(!item) return;
+      document.getElementById('editingNewsKey').value = k;
+      document.getElementById('newsTitle').value = item.title || '';
+      document.getElementById('newsTitleColor').value = item.titleColor || '#d32f2f';
+      document.getElementById('newsCategory').value = item.category || '';
+      document.getElementById('newsJournalismGenre').value = item.genre || 'خبر';
+      document.getElementById('newsAuthor').value = item.author || '';
+      document.getElementById('newsSummary').value = item.summary || '';
+      document.getElementById('newsBodyEditor').innerHTML = item.body || '';
+      document.getElementById('newsPdfUrl').value = item.pdfUrl || '';
+      document.getElementById('newsImageUrl').value = item.imageUrl || '';
+      document.getElementById('newsVideoUrl').value = item.videoUrl || '';
+      document.getElementById('newsAudioUrl').value = item.audioUrl || '';
+
+      document.getElementById('newsSubmitBtn').innerText = "تحديث المحتوى";
+      document.getElementById('cancelNewsEditBtn').classList.remove('d-none');
+      switchAdminTab('publish');
+    }
+
+    function resetNewsForm() {
+      document.getElementById('newsForm').reset();
+      document.getElementById('editingNewsKey').value = '';
+      document.getElementById('newsBodyEditor').innerHTML = '';
+      document.getElementById('adminExtraImagesContainer').innerHTML = '';
+      document.getElementById('newsSubmitBtn').innerText = "نشر المحتوى";
+      document.getElementById('cancelNewsEditBtn').classList.add('d-none');
+    }
+
+    function openFullNewsModal(key) {
+      const item = allNewsData[key];
+      if (!item) return;
+
+      document.getElementById('modalCategory').innerText = item.category || 'خبر';
+      document.getElementById('modalGenre').innerText = item.genre || 'خبر صحفي';
+      document.getElementById('modalTitle').innerText = item.title;
+      document.getElementById('modalAuthorName').innerText = item.author || 'ناشر الخبر';
+      document.getElementById('modalNewsDate').innerText = new Date(item.createdAt || Date.now()).toLocaleString('ar-EG');
+      
+      document.getElementById('modalPdfContainer').innerHTML = item.pdfUrl ? `
+        <div class="my-3 p-3 bg-light border border-danger rounded text-center shadow-sm">
+          <a href="${item.pdfUrl}" target="_blank" class="btn btn-danger fw-bold shadow"><i class="fa-solid fa-file-pdf me-2"></i>عرض أو تحميل ملف التكليف (PDF)</a>
+        </div>
+      ` : '';
+
+      const topContainer = document.getElementById('modalTopImagesContainer');
+      topContainer.innerHTML = item.imageUrl ? `<div class="mb-3 text-center"><img src="${item.imageUrl}" class="img-fluid rounded shadow-sm cursor-pointer" style="max-height: 400px; object-fit: contain;" onclick="openZoomImage('${item.imageUrl}')"></div>` : '';
+
+      document.getElementById('modalVideoContainer').innerHTML = item.videoUrl ? `<video src="${item.videoUrl}" controls class="w-100 rounded" style="max-height: 400px; background: #000;"></video>` : '';
+      document.getElementById('modalAudioContainer').innerHTML = item.audioUrl ? `<div class="p-2 bg-light border rounded-3 mb-3"><label class="form-label small fw-bold text-primary mb-1"><i class="fa-solid fa-volume-high me-1"></i>المادة الصوتية:</label><audio src="${item.audioUrl}" controls class="w-100"></audio></div>` : '';
+
+      let bodyHtml = item.body || '';
+      let extraImgsHtml = '';
+      if (item.extraImages && Array.isArray(item.extraImages)) {
+        item.extraImages.forEach(img => {
+          const imgMarkup = `
+            <div class="my-3 text-center">
+              <img src="${img.url}" class="img-fluid rounded shadow-sm cursor-pointer" style="max-height: 350px; object-fit: contain;" onclick="openZoomImage('${img.url}')">
+              ${img.caption ? `<div class="text-muted mt-1" style="font-size: 0.75rem; font-style: italic;">${img.caption}</div>` : ''}
+            </div>
+          `;
+          if (img.position === 'top') topContainer.innerHTML += imgMarkup;
+          else if (img.position === 'inline') bodyHtml += imgMarkup;
+          else extraImgsHtml += imgMarkup;
+        });
+      }
+
+      document.getElementById('modalBody').innerHTML = bodyHtml;
+      document.getElementById('modalExtraImagesContainer').innerHTML = extraImgsHtml;
+
+      fullNewsModalInstance.show();
+    }
+
+    function handleNewsSubmit(e) {
+      e.preventDefault();
+      const editingKey = document.getElementById('editingNewsKey').value;
+      let extraImages = [];
+      document.querySelectorAll('#adminExtraImagesContainer > div').forEach(row => {
+        const url = row.querySelector('input[type="hidden"]').value;
+        const caption = row.querySelector('.extra-img-caption').value.trim();
+        const position = row.querySelector('.extra-img-position').value;
+        if(url) extraImages.push({ url, caption, position });
+      });
+
+      const newsPayload = {
+        title: document.getElementById('newsTitle').value.trim(),
+        titleColor: document.getElementById('newsTitleColor').value,
+        category: document.getElementById('newsCategory').value,
+        genre: document.getElementById('newsJournalismGenre').value,
+        author: document.getElementById('newsAuthor').value.trim(),
+        summary: document.getElementById('newsSummary').value.trim(),
+        body: document.getElementById('newsBodyEditor').innerHTML,
+        pdfUrl: document.getElementById('newsPdfUrl').value,
+        imageUrl: document.getElementById('newsImageUrl').value,
+        videoUrl: document.getElementById('newsVideoUrl').value,
+        audioUrl: document.getElementById('newsAudioUrl').value,
+        extraImages: extraImages,
+        status: 'approved',
+        createdAt: Date.now()
+      };
+
+      if(editingKey) {
+        db.ref('news/' + editingKey).update(newsPayload).then(() => {
+          alert("تم تحديث المحتوى بنجاح!");
+          resetNewsForm();
+        });
+      } else {
+        db.ref('news').push(newsPayload).then(() => {
+          alert("تم نشر المحتوى بنجاح!");
+          resetNewsForm();
+        });
+      }
+    }
+
+    function handleReporterSubmit(e) {
+      e.preventDefault();
+      const reportPayload = {
+        title: document.getElementById('reporterNewsTitle').value.trim(),
+        titleColor: document.getElementById('reporterNewsTitleColor').value,
+        category: document.getElementById('reporterNewsCategory').value,
+        genre: document.getElementById('reporterNewsGenre').value,
+        author: document.getElementById('reporterAuthor').value.trim(),
+        summary: "تقرير عضو غير مسجل / زائر",
+        body: document.getElementById('reporterNewsBodyEditor').innerHTML,
+        pdfUrl: document.getElementById('reporterNewsPdfUrl').value,
+        imageUrl: document.getElementById('reporterNewsImgUrl').value,
+        videoUrl: document.getElementById('reporterNewsVideoUrl').value,
+        audioUrl: document.getElementById('reporterNewsAudioUrl').value,
+        status: 'pending',
+        createdAt: Date.now()
+      };
+
+      db.ref('pendingNews').push(reportPayload).then(() => {
+        alert("تم إرسال تقريرك بنجاح وسيتم مراجعته ونشره من قِبل الأدمن أو أستاذ المادة.");
+        document.getElementById('reporterNewsBodyEditor').innerHTML = '';
+      });
+    }
+
+    // Team Members
+    function listenToTeamMembers() {
+      db.ref('teamMembers').on('value', snap => {
+        teamMembersData = snap.val() || {};
+        renderTeamGrid();
+        renderAdminTeamMembersList();
+      });
+    }
+
+    function renderTeamGrid() {
+      const supGrid = document.getElementById('supervisorsGrid');
+      const admGrid = document.getElementById('adminGrid');
+      const edGrid = document.getElementById('editorsGrid');
+      if(!supGrid) return;
+      supGrid.innerHTML = ''; admGrid.innerHTML = ''; edGrid.innerHTML = '';
+      let sups = [], adms = [], eds = [];
+
+      Object.keys(teamMembersData).forEach(k => {
+        const m = teamMembersData[k];
+        const html = `
+          <div class="col-md-4 col-6">
+            <div class="p-2 bg-light border rounded text-center shadow-sm">
+              ${m.photoUrl ? `<img src="${m.photoUrl}" style="width:55px; height:55px; border-radius:50%; object-fit:cover;" class="mb-1 cursor-pointer" onclick="openZoomImage('${m.photoUrl}')">` : '<i class="fa-solid fa-user-circle fs-2 text-secondary mb-1"></i>'}
+              <div class="fw-bold small">${m.name}</div>
+              <div class="text-muted" style="font-size:0.75rem;">${m.role}</div>
+            </div>
+          </div>
+        `;
+        if(m.section === 'supervisors') sups.push(html);
+        else if(m.section === 'admin') adms.push(html);
+        else eds.push(html);
+      });
+
+      supGrid.innerHTML = sups.length ? sups.join('') : '<div class="text-muted small">لا توجد بيانات.</div>';
+      admGrid.innerHTML = adms.length ? adms.join('') : '<div class="text-muted small">لا توجد بيانات.</div>';
+      edGrid.innerHTML = eds.length ? eds.join('') : '<div class="text-muted small">لا توجد بيانات.</div>';
+    }
+
+    function renderAdminTeamMembersList() {
+      const container = document.getElementById('adminTeamMemberList');
+      if(!container) return;
+      const keys = Object.keys(teamMembersData);
+      if(keys.length === 0) { container.innerHTML = '<span class="text-muted small">لا توجد أعضاء.</span>'; return; }
+      container.innerHTML = keys.map(k => {
+        const m = teamMembersData[k];
+        return `
+          <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+            <div>
+              <span class="fw-bold small">${m.name}</span> <span class="badge bg-secondary" style="font-size:0.65rem;">${m.role}</span>
+            </div>
+            <div>
+              <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editTeamMember('${k}')"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="db.ref('teamMembers/${k}').remove()"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function handleSaveTeamMember(e) {
+      e.preventDefault();
+      const editingKey = document.getElementById('editingMemberKey').value;
+      const payload = {
+        name: document.getElementById('memberName').value.trim(),
+        role: document.getElementById('memberRole').value.trim(),
+        section: document.getElementById('memberSection').value,
+        username: document.getElementById('memberUsername').value.trim(),
+        password: document.getElementById('memberPassword').value.trim(),
+        secretId: document.getElementById('memberSecretId').value.trim(),
+        photoUrl: document.getElementById('memberPhotoUrl').value
+      };
+
+      if(editingKey) {
+        db.ref('teamMembers/' + editingKey).update(payload).then(() => { alert("تم التحديث بنجاح!"); resetMemberForm(); });
+      } else {
+        db.ref('teamMembers').push(payload).then(() => { alert("تم الإضافة بنجاح!"); document.getElementById('teamMemberForm').reset(); });
+      }
+    }
+
+    function editTeamMember(k) {
+      const m = teamMembersData[k];
+      if(!m) return;
+      document.getElementById('editingMemberKey').value = k;
+      document.getElementById('memberName').value = m.name || '';
+      document.getElementById('memberRole').value = m.role || '';
+      document.getElementById('memberSection').value = m.section || 'editors';
+      document.getElementById('memberUsername').value = m.username || '';
+      document.getElementById('memberPassword').value = m.password || '';
+      document.getElementById('memberSecretId').value = m.secretId || '';
+      document.getElementById('memberPhotoUrl').value = m.photoUrl || '';
+      document.getElementById('saveMemberBtn').innerText = "تحديث العضو";
+      document.getElementById('cancelMemberEditBtn').classList.remove('d-none');
+    }
+
+    function resetMemberForm() {
+      document.getElementById('teamMemberForm').reset();
+      document.getElementById('editingMemberKey').value = '';
+      document.getElementById('saveMemberBtn').innerText = "حفظ العضو";
+      document.getElementById('cancelMemberEditBtn').classList.add('d-none');
+    }
+
+    // Accounts & Platform Info
+    function listenToProfessorAccount() {
+      db.ref('settings/professorAccount').on('value', snap => {
+        if(snap.exists()) {
+          const p = snap.val();
+          document.getElementById('profAccountName').value = p.name || "أستاذ المادة";
+          document.getElementById('profAccountUser').value = p.username || "professor";
+          document.getElementById('profAccountPass').value = p.password || "123";
+          document.getElementById('profAccountSecretId').value = p.secretId || "7777";
+        }
+      });
+    }
+    function handleUpdateProfessorAccount(e) {
+      e.preventDefault();
+      db.ref('settings/professorAccount').set({
+        name: document.getElementById('profAccountName').value.trim(),
+        username: document.getElementById('profAccountUser').value.trim(),
+        password: document.getElementById('profAccountPass').value.trim(),
+        secretId: document.getElementById('profAccountSecretId').value.trim()
+      }).then(() => alert("تم تحديث أكونت أستاذ المادة بنجاح!"));
+    }
+
+    function listenToDeveloperAccount() {
+      db.ref('settings/developerAccount').on('value', snap => {
+        if(snap.exists()) {
+          const d = snap.val();
+          document.getElementById('devAccountName').value = d.name || "محمد اسماعيل";
+          document.getElementById('devAccountUser').value = d.username || "dev";
+          document.getElementById('devAccountPass').value = d.password || "123";
+          document.getElementById('devAccountSecretId').value = d.secretId || "8888";
+        }
+      });
+    }
+    function handleUpdateDeveloperAccount(e) {
+      e.preventDefault();
+      db.ref('settings/developerAccount').set({
+        name: document.getElementById('devAccountName').value.trim(),
+        username: document.getElementById('devAccountUser').value.trim(),
+        password: document.getElementById('devAccountPass').value.trim(),
+        secretId: document.getElementById('devAccountSecretId').value.trim()
+      }).then(() => alert("تم تحديث أكونت المطور بنجاح!"));
+    }
+
+    function listenToPlatformInfo() {
+      db.ref('settings/platformInfo').on('value', snap => {
+        if(snap.exists()) {
+          const info = snap.val();
+          document.getElementById('inputUniName').value = info.uniName || "جامعة المنيا";
+          document.getElementById('inputCollName').value = info.collName || "كلية التربية النوعية";
+          document.getElementById('inputDeanName').value = info.deanName || "";
+          document.getElementById('inputProfName').value = info.profName || "";
+          document.getElementById('inputAboutDesc').value = info.aboutDesc || "";
+          document.getElementById('inputUniLogo').value = info.uniLogo || "";
+          document.getElementById('inputCollLogo').value = info.collLogo || "";
+
+          document.getElementById('displayUniCollTitle').innerText = `${info.uniName || 'جامعة المنيا'} - ${info.collName || 'كلية التربية النوعية'}`;
+          document.getElementById('displayDeanName').innerText = info.deanName || '---';
+          document.getElementById('displayProfName').innerText = info.profName || '---';
+          document.getElementById('displayAboutDescription').innerText = info.aboutDesc || 'منصة تدريبية لتطبيق الفنون الصحفية.';
+
+          document.getElementById('displayLogosContainer').innerHTML = `
+            ${info.uniLogo ? `<img src="${info.uniLogo}" style="height:60px; object-fit:contain;" class="cursor-pointer" onclick="openZoomImage('${info.uniLogo}')">` : ''}
+            ${info.collLogo ? `<img src="${info.collLogo}" style="height:60px; object-fit:contain;" class="cursor-pointer" onclick="openZoomImage('${info.collLogo}')">` : ''}
+          `;
+        }
+      });
+    }
+
+    function savePlatformInfo(e) {
+      e.preventDefault();
+      db.ref('settings/platformInfo').set({
+        uniName: document.getElementById('inputUniName').value.trim(),
+        collName: document.getElementById('inputCollName').value.trim(),
+        deanName: document.getElementById('inputDeanName').value.trim(),
+        profName: document.getElementById('inputProfName').value.trim(),
+        aboutDesc: document.getElementById('inputAboutDesc').value.trim(),
+        uniLogo: document.getElementById('inputUniLogo').value,
+        collLogo: document.getElementById('inputCollLogo').value
+      }).then(() => alert("تم حفظ بيانات المنصة بنجاح!"));
+    }
+
+    // Login & Permissions (تخصيص الصلاحيات للمطور وأستاذ المادة)
+    function executeLogin() {
+      const role = document.getElementById('loginRoleSelector').value;
+      const username = document.getElementById('loginUsernameInput').value.trim();
+      const pass = document.getElementById('loginPasswordInput').value.trim();
+      const secretId = document.getElementById('loginSecretIdInput').value.trim();
+
+      if (role === 'developer') {
+        db.ref('settings/developerAccount').once('value', snap => {
+          const d = snap.val() || { username: 'dev', password: '123', secretId: '8888', name: 'محمد اسماعيل' };
+          if (d.username === username && d.password === pass && d.secretId === secretId) {
+            grantAccess(d.name, "المطور", true, true);
+          } else {
+            alert("بيانات المطور أو كود التحقق غير صحيحة!");
+          }
+        });
+      } else if (role === 'professor') {
+        db.ref('settings/professorAccount').once('value', snap => {
+          const p = snap.val() || { username: 'professor', password: '123', secretId: '7777', name: 'أستاذ المادة' };
+          if (p.username === username && p.password === pass && p.secretId === secretId) {
+            grantAccess(p.name, "أستاذ المادة", false, true); // أستاذ المادة لديه صلاحية نشر المكتبة والبودكاست
+          } else {
+            alert("بيانات أستاذ المادة أو كود التحقق غير صحيحة!");
+          }
+        });
+      } else if (role === 'admin') {
+        if (username === 'admin' && pass === '123') {
+          grantAccess("أدمن المنصة الرئيسي", "أدمن عام", false, false);
+        } else {
+          alert("بيانات الأدمن غير صحيحة!");
+        }
+      } else {
+        db.ref('teamMembers').once('value', snapshot => {
+          const members = snapshot.val() || {};
+          let found = null;
+          Object.keys(members).forEach(k => {
+            const m = members[k];
+            if (m.username === username && m.password === pass && m.secretId === secretId) found = m;
+          });
+          if (found) {
+            currentLoggedInUser = found;
+            document.getElementById('loggedInMemberName').innerText = found.name;
+            document.getElementById('loggedInRoleBadge').innerText = found.role;
+            document.getElementById('memberLoggedInBanner').classList.remove('d-none');
+            if (found.section === 'admin' || found.section === 'supervisors') {
+              grantAccess(found.name, found.role, false, false);
+            } else {
+              unifiedLoginModalInstance.hide();
+              alert(`أهلاً بك ${found.name}`);
+            }
+          } else {
+            alert("بيانات العضو غير صحيحة!");
+          }
+        });
+      }
+    }
+
+    function grantAccess(name, role, isDeveloper, canPublishLibraryAndPodcast) {
+      currentLoggedInUser = { name, role, isDeveloper, canPublishLibraryAndPodcast };
+      document.getElementById('loggedInMemberName').innerText = name;
+      document.getElementById('loggedInRoleBadge').innerText = role;
+      document.getElementById('memberLoggedInBanner').classList.remove('d-none');
+      document.getElementById('adminPanel').classList.remove('d-none');
+
+      const devTabs = document.querySelectorAll('.dev-only-tab');
+      const devContents = document.querySelectorAll('.dev-only-content');
+      const pubAuthTabs = document.querySelectorAll('.pub-auth-tab');
+      const pubAuthContents = document.querySelectorAll('.pub-auth-content');
+
+      // إظهار تبويبات المطور فقط
+      if (isDeveloper) {
+        devTabs.forEach(el => el.classList.remove('d-none'));
+      } else {
+        devTabs.forEach(el => el.classList.add('d-none'));
+        devContents.forEach(el => el.classList.add('d-none'));
+      }
+
+      // إظهار تبويبات نشر المكتبة والبودكاست للمطور وأستاذ المادة
+      if (canPublishLibraryAndPodcast) {
+        pubAuthTabs.forEach(el => el.classList.remove('d-none'));
+      } else {
+        pubAuthTabs.forEach(el => el.classList.add('d-none'));
+        pubAuthContents.forEach(el => el.classList.add('d-none'));
+      }
+
+      unifiedLoginModalInstance.hide();
+      alert(`مرحباً بك يا ${name} (${role})`);
+    }
+
+    function logoutMember() {
+      currentLoggedInUser = null;
+      document.getElementById('memberLoggedInBanner').classList.add('d-none');
+      document.getElementById('adminPanel').classList.add('d-none');
+      alert("تم تسجيل الخروج بنجاح.");
+    }
+    
+    function logoutAdmin() {
+      document.getElementById('adminPanel').classList.add('d-none');
+    }
+
+    function switchAdminTab(tab) {
+      ['Publish', 'Pending', 'ManageNews', 'Control', 'Podcast', 'Categories', 'Pdflib', 'Team', 'Profaccount', 'Devaccount', 'About'].forEach(t => {
+        const el = document.getElementById('adminTab' + t);
+        if(el) el.classList.add('d-none');
+      });
+      const target = document.getElementById('adminTab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+      if(target) target.classList.remove('d-none');
+    }
+
+    function shareApp() {
+      if(navigator.share) { navigator.share({ title: document.title, url: window.location.href }); }
+      else { prompt("انسخ رابط المنصة:", window.location.href); }
+    }
+  </script>
+</body>
+</html>
